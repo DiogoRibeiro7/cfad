@@ -1,0 +1,30 @@
+cff-version: 1.2.0
+message: "If you use this software, please cite it as below."
+authors:
+  - family-names: Ribeiro
+    given-names: Diogo
+    orcid: https://orcid.org/0009-0001-2022-7072
+    affiliation: "ESMAD, Instituto Politécnico do Porto"
+    email: dfr@esmad.ipp.pt
+title: "cfad: Characteristic Function Anomaly Detector"
+version: 0.1.0
+date-released: 2025-01-01
+repository-code: https://github.com/diogoribeiro7/cfad
+license: MIT
+keywords:
+  - anomaly detection
+  - characteristic function
+  - contour integration
+  - Lévy processes
+  - financial time series
+  - change-point detection
+references:
+  - type: article
+    authors:
+      - family-names: Cont
+        given-names: Rama
+      - family-names: Tankov
+        given-names: Peter
+    title: "Financial Modelling with Jump Processes"
+    year: 2004
+    publisher: CRC Press

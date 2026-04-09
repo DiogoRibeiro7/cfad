@@ -1,0 +1,52 @@
+"""
+cfad — Characteristic Function Anomaly Detector
+================================================
+
+Detect structural breaks in financial time series using contour integrals
+of the empirical characteristic function in the complex plane.
+
+Quick start
+-----------
+>>> from cfad import detect
+>>> report = detect(returns, window=60, h=4.0)
+>>> print(report.summary())
+
+Core modules
+------------
+cfad.api            : high-level entry points (detect, compare_models)
+cfad.empirical_cf   : rolling ECF estimation
+cfad.contour        : contour integration engine
+cfad.detection      : RollingDetector, AnomalyReport
+cfad.models         : parametric CF models (Gaussian, NIG, CGMY, Lévy-stable)
+cfad._ext           : Cython C extensions (compiled separately)
+
+References
+----------
+Ribeiro, D. (2025). Residues as detectors: contour integral anomaly scoring
+  for financial time series. Journal of Open Source Software (submitted).
+
+Cont, R. & Tankov, P. (2004). Financial Modelling with Jump Processes.
+  Chapman & Hall/CRC.
+
+Epps, T. W. & Pulley, L. B. (1983). A test for normality based on the
+  empirical characteristic function. Biometrika, 70(3), 723-726.
+"""
+from cfad.api import detect, compare_models
+from cfad.detection import RollingDetector, AnomalyReport
+from cfad.empirical_cf import ecf_at, rolling_ecf
+from cfad.models.gaussian import GaussianCF
+from cfad.models.nig import NIGCF
+
+__version__ = "0.1.0"
+__author__  = "Diogo Ribeiro"
+__email__   = "dfr@esmad.ipp.pt"
+__all__ = [
+    "detect",
+    "compare_models",
+    "RollingDetector",
+    "AnomalyReport",
+    "ecf_at",
+    "rolling_ecf",
+    "GaussianCF",
+    "NIGCF",
+]

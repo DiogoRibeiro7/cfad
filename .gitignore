@@ -1,14 +1,41 @@
+# Python cache and bytecode
 __pycache__/
 *.py[cod]
+*$py.class
+
+# Cython build artifacts
 *.pyx.c
+*.c
 *.so
-*.egg-info/
-dist/
+*.pyd
+cython_debug/
+
+# Packaging and distribution
 build/
+dist/
+*.egg-info/
 .eggs/
+pip-wheel-metadata/
+
+# Testing and coverage
 .pytest_cache/
 .coverage
+.coverage.*
 htmlcov/
+
+# Type checking and linting caches
+.mypy_cache/
+.ruff_cache/
+
+# Jupyter notebooks
 *.ipynb_checkpoints/
+
+# Local data and runtime files
 data/*.csv
 .env
+
+# IDE and OS files
+.vscode/
+.idea/
+.DS_Store
+Thumbs.db

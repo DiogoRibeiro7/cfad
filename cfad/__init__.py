@@ -36,10 +36,14 @@ from cfad.detection import RollingDetector, AnomalyReport
 from cfad.empirical_cf import ecf_at, rolling_ecf
 from cfad.models.gaussian import GaussianCF
 from cfad.models.nig import NIGCF
+from cfad.models.cgmy import CGMYCF
+from cfad.models.levy_stable import LevyStableCF
+from cfad.residue_score import normalise_scores, rolling_pvalue, threshold_by_fpr
+from cfad.utils import load_spy_sample, plot_scores, simulate_levy_returns
 
 __version__ = "0.1.0"
-__author__  = "Diogo Ribeiro"
-__email__   = "dfr@esmad.ipp.pt"
+__author__ = "Diogo Ribeiro"
+__email__ = "dfr@esmad.ipp.pt"
 __all__ = [
     "detect",
     "compare_models",
@@ -49,4 +53,12 @@ __all__ = [
     "rolling_ecf",
     "GaussianCF",
     "NIGCF",
+    "CGMYCF",
+    "LevyStableCF",
+    "normalise_scores",
+    "rolling_pvalue",
+    "threshold_by_fpr",
+    "load_spy_sample",
+    "plot_scores",
+    "simulate_levy_returns",
 ]

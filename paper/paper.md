@@ -129,3 +129,12 @@ The author thanks the students of TSIW at ESMAD-IPP whose questions about
 market dynamics motivated the pedagogical framing of this work.
 
 # References
+
+- [@cont2004]
+- [@page1954]
+- [@epps1983]
+- [@barndorff1977]
+- [@carr2002]
+- [@inclan1994]
+- [@madan1998]
+- [@kuchler2013]

@@ -16,10 +16,13 @@ When alpha < 2: power-law tails → branch cut → is_analytic = False.
 
 Reference: Zolotarev (1986), One-Dimensional Stable Distributions.
 """
+
 from __future__ import annotations
+
 import numpy as np
 from numpy.typing import NDArray
 from scipy.optimize import minimize
+
 from .base import CFModel
 
 
@@ -54,39 +57,44 @@ class LevyStableCF(CFModel):
 
         if abs(a - 1.0) < 1e-8:
             # Special case alpha = 1
-            return (-abs_cxi + 1j * b * (2 / np.pi) * cxi * np.log(abs_cxi + 1e-300)
-                    + 1j * m * xi)
+            return (
+                -abs_cxi
+                + 1j * b * (2 / np.pi) * cxi * np.log(abs_cxi + 1e-300)
+                + 1j * m * xi
+            )
         else:
             tan_factor = np.tan(np.pi * a / 2)
-            skew = -1j * b * np.sign(xi) * tan_factor * (abs_cxi ** a - abs_cxi)
-            return -(abs_cxi ** a) + skew + 1j * m * xi
+            skew = -1j * b * np.sign(xi) * tan_factor * (abs_cxi**a - abs_cxi)
+            return -(abs_cxi**a) + skew + 1j * m * xi
 
     def cf(self, xi: NDArray[np.float64]) -> NDArray[np.complex128]:
         return np.exp(self.log_cf(xi))
 
     def fit(self, returns: NDArray[np.float64]) -> "LevyStableCF":
-        """Minimum ECF distance estimation."""
-        from cfad.empirical_cf import ecf_at
-        xi = np.linspace(-8, 8, 128)
-        ecf = ecf_at(returns, xi)
+        """Maximum likelihood estimation via scipy.stats.levy_stable.fit."""
+        from scipy.stats import levy_stable
 
-        def objective(params):
-            a, b, c_, m = params
-            if not (0.1 < a <= 2) or not (-1 <= b <= 1) or c_ <= 0:
-                return 1e10
-            try:
-                self.alpha, self.beta, self.c, self.mu = a, b, c_, m
-                phi = self.cf(xi)
-                return float(np.sum(np.abs(ecf - phi) ** 2))
-            except Exception:
-                return 1e10
+        returns_arr = np.asarray(returns, dtype=np.float64)
+        alpha, beta, loc, scale = levy_stable.fit(returns_arr)
+        if not (0 < alpha <= 2):
+            raise ValueError(f"fitted alpha must be in (0, 2]; got {alpha}")
+        if not (-1 <= beta <= 1):
+            raise ValueError(f"fitted beta must be in [-1, 1]; got {beta}")
+        if scale <= 0:
+            raise ValueError(f"fitted scale must be positive; got {scale}")
 
-        x0 = [self.alpha, self.beta, self.c, np.mean(returns)]
-        res = minimize(objective, x0, method="Nelder-Mead",
-                       options={"maxiter": 8000, "xatol": 1e-5})
-        self.alpha, self.beta, self.c, self.mu = res.x
+        self.alpha = float(alpha)
+        self.beta = float(beta)
+        self.c = float(scale)
+        self.mu = float(loc)
         return self
 
     def __repr__(self) -> str:
-        return (f"LevyStableCF(alpha={self.alpha:.4f}, beta={self.beta:.4f}, "
-                f"c={self.c:.6f}, mu={self.mu:.6f})")
+        return (
+            f"LevyStableCF(alpha={self.alpha:.4f}, beta={self.beta:.4f}, "
+            f"c={self.c:.6f}, mu={self.mu:.6f})"
+        )
+        return (
+            f"LevyStableCF(alpha={self.alpha:.4f}, beta={self.beta:.4f}, "
+            f"c={self.c:.6f}, mu={self.mu:.6f})"
+        )

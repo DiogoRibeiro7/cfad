@@ -2,10 +2,15 @@
 
 from __future__ import annotations
 
+import sys
 from pathlib import Path
 
 import matplotlib.pyplot as plt
 import numpy as np
+
+ROOT = Path(__file__).resolve().parents[1]
+if str(ROOT) not in sys.path:
+    sys.path.insert(0, str(ROOT))
 
 from cfad import detect
 from cfad.utils import simulate_levy_returns
@@ -57,7 +62,9 @@ def compute_roc(
 
 def auc_from_curve(fprs: np.ndarray, tprs: np.ndarray) -> float:
     order = np.argsort(fprs)
-    return float(np.trapz(tprs[order], fprs[order]))
+    x = fprs[order]
+    y = tprs[order]
+    return float(np.sum((x[1:] - x[:-1]) * (y[1:] + y[:-1]) / 2.0))
 
 
 def main() -> None:
@@ -92,5 +99,4 @@ def main() -> None:
 
 
 if __name__ == "__main__":
-    main()
     main()

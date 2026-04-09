@@ -7,8 +7,8 @@ fallback over increasing sequence lengths.
 from __future__ import annotations
 
 import sys
-from pathlib import Path
 import timeit
+from pathlib import Path
 
 import numpy as np
 

@@ -89,6 +89,23 @@ Under non-analytic alternatives: $I \neq 0 \Rightarrow$ structural break.
 | `CGMYCF` | `False` | Branch cut | Jump intensity + tail index |
 | `LevyStableCF` | `False` | Branch cut | Power-law tails ($\alpha < 2$) |
 
+## Utilities
+
+`cfad` also provides convenience tools for model comparison and sample generation:
+
+- `load_spy_sample()` — load or cache SPY daily returns for 2018–2022.
+- `simulate_levy_returns(n, alpha, beta, scale)` — generate synthetic Lévy-stable returns.
+- `normalise_scores(...)`, `rolling_pvalue(...)`, `threshold_by_fpr(...)` — score normalisation and thresholding utilities.
+
+## Notebooks
+
+The repository includes example notebooks demonstrating the package pipeline and scientific motivation:
+
+- `notebooks/01_concept_illustration.ipynb`
+- `notebooks/02_cf_families.ipynb`
+- `notebooks/03_contour_detection.ipynb`
+- `notebooks/04_empirical_validation.ipynb`
+
 ## Paper
 
 This package accompanies the manuscript:

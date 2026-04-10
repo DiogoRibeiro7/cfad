@@ -31,13 +31,14 @@ Cont, R. & Tankov, P. (2004). Financial Modelling with Jump Processes.
 Epps, T. W. & Pulley, L. B. (1983). A test for normality based on the
   empirical characteristic function. Biometrika, 70(3), 723-726.
 """
-from cfad.api import detect, compare_models
-from cfad.detection import RollingDetector, AnomalyReport
+
+from cfad.api import compare_models, detect
+from cfad.detection import AnomalyReport, RollingDetector
 from cfad.empirical_cf import ecf_at, rolling_ecf
-from cfad.models.gaussian import GaussianCF
-from cfad.models.nig import NIGCF
 from cfad.models.cgmy import CGMYCF
+from cfad.models.gaussian import GaussianCF
 from cfad.models.levy_stable import LevyStableCF
+from cfad.models.nig import NIGCF
 from cfad.residue_score import normalise_scores, rolling_pvalue, threshold_by_fpr
 from cfad.utils import load_spy_sample, plot_scores, simulate_levy_returns
 

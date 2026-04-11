@@ -34,6 +34,7 @@ Epps, T. W. & Pulley, L. B. (1983). A test for normality based on the
 
 from cfad.api import compare_models, detect
 from cfad.backtest import BacktestResult, WalkForwardBacktest
+from cfad.bootstrap import bootstrap_scores, score_stability
 from cfad.detection import AnomalyReport, RollingDetector, StreamDetector
 from cfad.empirical_cf import ecf_at, rolling_ecf
 from cfad.gof import aic_table, cf_distance, epps_pulley_test, rolling_gof
@@ -52,6 +53,8 @@ __all__ = [
     "compare_models",
     "WalkForwardBacktest",
     "BacktestResult",
+    "bootstrap_scores",
+    "score_stability",
     "RollingDetector",
     "StreamDetector",
     "AnomalyReport",

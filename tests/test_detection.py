@@ -1,7 +1,7 @@
 """Integration tests for the detection pipeline."""
 import numpy as np
 import pytest
-from cfad import detect, RollingDetector
+from cfad import detect, RollingDetector, StreamDetector
 from cfad.residue_score import normalise_scores, rolling_pvalue, threshold_by_fpr
 
 
@@ -66,3 +66,115 @@ def test_threshold_by_fpr():
     threshold = threshold_by_fpr(scores, calibration_scores, fpr=0.05)
     realised_fpr = float(np.mean(calibration_scores > threshold))
     assert realised_fpr == pytest.approx(0.05, abs=0.01)
+
+
+def test_stream_vs_batch():
+    rng = np.random.default_rng(2026)
+    returns = rng.normal(0.0, 0.01, 400).astype(np.float64)
+
+    batch_detector = RollingDetector(
+        window=60,
+        xi_min=-10.0,
+        xi_max=10.0,
+        n_xi=128,
+        height=0.2,
+        step=1,
+        calibration_frac=0.3,
+        k=0.5,
+        h=5.0,
+    )
+    report = batch_detector.fit_transform(returns)
+
+    stream = StreamDetector(
+        window=60,
+        xi_min=-10.0,
+        xi_max=10.0,
+        n_xi=128,
+        height=0.2,
+        mu0=report.mu0,
+        sigma0=report.sigma0,
+        warmup=0,
+        k=0.5,
+        h=5.0,
+    )
+    out = stream.update_batch(returns)
+
+    stream_scores = np.asarray([d["score"] for d in out], dtype=np.float64)
+    assert np.all(np.isnan(stream_scores[:59]))
+    assert np.allclose(
+        stream_scores[59:],
+        report.scores,
+        atol=1e-10,
+        rtol=1e-10,
+    )
+
+
+def test_stream_alarm_fires():
+    rng = np.random.default_rng(123)
+    returns = np.concatenate(
+        [
+            rng.normal(0.0, 0.01, 300),
+            rng.normal(0.0, 0.01, 100) + 0.10,
+        ]
+    ).astype(np.float64)
+
+    stream = StreamDetector(
+        window=60,
+        xi_min=-10.0,
+        xi_max=10.0,
+        n_xi=128,
+        height=0.2,
+        mu0=None,
+        sigma0=None,
+        warmup=50,
+        k=0.5,
+        h=4.0,
+    )
+    out = stream.update_batch(returns)
+    alarms_in_jump = [d["alarm"] for i, d in enumerate(out) if i >= 300]
+    assert any(alarms_in_jump)
+
+
+def test_stream_reset():
+    stream = StreamDetector(
+        window=40,
+        xi_min=-10.0,
+        xi_max=10.0,
+        n_xi=64,
+        height=0.2,
+        mu0=None,
+        sigma0=None,
+        warmup=20,
+        k=0.5,
+        h=4.0,
+    )
+    _ = stream.update_batch(np.linspace(-0.01, 0.01, 120, dtype=np.float64))
+    stream.reset()
+
+    assert stream.n_obs == 0
+    assert stream.is_calibrated is False
+    assert stream.cusum_pos == 0.0
+
+
+def test_stream_update_returns_dict_keys():
+    stream = StreamDetector(
+        window=20,
+        xi_min=-10.0,
+        xi_max=10.0,
+        n_xi=32,
+        height=0.2,
+        mu0=0.0,
+        sigma0=1.0,
+        warmup=0,
+        k=0.5,
+        h=4.0,
+    )
+    out = stream.update(0.001)
+    assert set(out.keys()) == {
+        "score",
+        "cusum_pos",
+        "cusum_neg",
+        "alarm",
+        "n_obs",
+        "calibrated",
+    }

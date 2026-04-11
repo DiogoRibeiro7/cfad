@@ -43,6 +43,7 @@ from cfad.models.gaussian import GaussianCF
 from cfad.models.levy_stable import LevyStableCF
 from cfad.models.nig import NIGCF
 from cfad.residue_score import normalise_scores, rolling_pvalue, threshold_by_fpr
+from cfad.sensitivity import height_sensitivity, recommend_params, window_sensitivity
 from cfad.utils import load_spy_sample, plot_scores, simulate_levy_returns
 
 __version__ = "0.1.0"
@@ -71,6 +72,9 @@ __all__ = [
     "normalise_scores",
     "rolling_pvalue",
     "threshold_by_fpr",
+    "window_sensitivity",
+    "height_sensitivity",
+    "recommend_params",
     "load_spy_sample",
     "plot_scores",
     "simulate_levy_returns",

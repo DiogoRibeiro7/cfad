@@ -46,6 +46,9 @@ Documentation = "https://cfad.readthedocs.io"
 [project.scripts]
 cfad = "cfad.cli:main"
 
+[tool.cibuildwheel]
+build-frontend = "build"
+
 [tool.pytest.ini_options]
 testpaths = ["tests"]
 addopts = "-v"

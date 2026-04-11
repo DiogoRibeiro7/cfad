@@ -1,4 +1,4 @@
-"""ROC benchmark for CFAD using synthetic normal and jump return series."""
+"""Monte Carlo ROC benchmark for CFAD under null vs regime-shift alternatives."""
 
 from __future__ import annotations
 
@@ -15,87 +15,109 @@ if str(ROOT) not in sys.path:
 from cfad import detect
 from cfad.utils import simulate_levy_returns
 
-
-def simulate_series(n: int, jump: bool = False) -> np.ndarray:
-    rng = np.random.default_rng()
-    returns = rng.normal(loc=0.0, scale=0.01, size=n)
-    if jump:
-        jump_index = n // 2
-        jump_value = simulate_levy_returns(1, alpha=1.7, beta=0.0, scale=0.2)[0]
-        returns[jump_index] += jump_value
-    return returns
+N_SIM = 200
+T = 400
+WINDOW = 60
+STEP = 5
+CALIBRATION_FRAC = 0.4
+H_GRID = np.linspace(1.0, 10.0, 30)
+TAIL_WINDOWS = 60
 
 
-def compute_cusum_alarm(
-    scores: np.ndarray,
-    mu0: float,
-    sigma0: float,
-    h: float,
-    k: float = 0.5,
-) -> bool:
-    s_pos = 0.0
-    s_neg = 0.0
-    for score in scores:
-        z = (score - mu0) / sigma0
-        s_pos = max(0.0, s_pos + z - k)
-        s_neg = max(0.0, s_neg - z - k)
-        if s_pos > h or s_neg > h:
-            return True
-    return False
+def positive_detection(report) -> bool:
+    """True when any alarm occurs in the last 60 windows."""
+    alarms = np.asarray(report.alarm_indices, dtype=np.int64)
+    if alarms.size == 0:
+        return False
+    n_windows = int(len(report.scores))
+    cutoff = max(0, n_windows - TAIL_WINDOWS)
+    return bool(np.any(alarms >= cutoff))
 
 
-def compute_roc(
-    labels: np.ndarray, scores: np.ndarray, thresholds: np.ndarray
-) -> tuple[np.ndarray, np.ndarray]:
-    tprs = []
-    fprs = []
-    for thresh in thresholds:
-        preds = scores >= thresh
-        tp = np.sum(preds & labels)
-        fp = np.sum(preds & ~labels)
-        fn = np.sum(~preds & labels)
-        tn = np.sum(~preds & ~labels)
-        tprs.append(tp / max(1, tp + fn))
-        fprs.append(fp / max(1, fp + tn))
-    return np.array(fprs), np.array(tprs)
+def simulate_null_series(rng: np.random.Generator) -> np.ndarray:
+    """Generate a null Gaussian return series."""
+    return rng.normal(0.0, 0.01, T)
 
 
-def auc_from_curve(fprs: np.ndarray, tprs: np.ndarray) -> float:
-    order = np.argsort(fprs)
-    x = fprs[order]
-    y = tprs[order]
-    return float(np.sum((x[1:] - x[:-1]) * (y[1:] + y[:-1]) / 2.0))
+def simulate_alt_series(rng: np.random.Generator) -> np.ndarray:
+    """Generate alternative series with a final Lévy-stable regime shift."""
+    left = rng.normal(0.0, 0.01, 300)
+    levy_seed = int(rng.integers(0, 2**32 - 1))
+    right = simulate_levy_returns(100, alpha=1.5, scale=0.012, seed=levy_seed)
+    return np.concatenate([left, right])
+
+
+def compute_rates_for_h(
+    h: float, null_series: list[np.ndarray], alt_series: list[np.ndarray]
+) -> tuple[float, float]:
+    """Compute (FPR, TPR) for one threshold h."""
+    null_positive = 0
+    alt_positive = 0
+
+    for series in null_series:
+        report = detect(
+            series,
+            window=WINDOW,
+            step=STEP,
+            calibration_frac=CALIBRATION_FRAC,
+            h=float(h),
+        )
+        if positive_detection(report):
+            null_positive += 1
+
+    for series in alt_series:
+        report = detect(
+            series,
+            window=WINDOW,
+            step=STEP,
+            calibration_frac=CALIBRATION_FRAC,
+            h=float(h),
+        )
+        if positive_detection(report):
+            alt_positive += 1
+
+    fpr = null_positive / float(N_SIM)
+    tpr = alt_positive / float(N_SIM)
+    return fpr, tpr
 
 
 def main() -> None:
-    n_series = 500
-    series_length = 200
-    thresholds = np.linspace(2.0, 8.0, 13)
-    scores = []
-    labels = []
+    """Run the ROC benchmark, print AUC, and save outputs in benchmarks/."""
+    rng = np.random.default_rng(0)
+    null_series = [simulate_null_series(rng) for _ in range(N_SIM)]
+    alt_series = [simulate_alt_series(rng) for _ in range(N_SIM)]
 
-    for jump in [False, True]:
-        for _ in range(n_series):
-            returns = simulate_series(series_length, jump=jump)
-            report = detect(returns, window=60, h=10.0)
-            scores.append(np.max(report.cusum_pos))
-            labels.append(jump)
+    fprs: list[float] = []
+    tprs: list[float] = []
+    for h in H_GRID:
+        fpr, tpr = compute_rates_for_h(float(h), null_series, alt_series)
+        fprs.append(fpr)
+        tprs.append(tpr)
 
-    scores_arr = np.asarray(scores, dtype=np.float64)
-    labels_arr = np.asarray(labels, dtype=bool)
-    fprs, tprs = compute_roc(labels_arr, scores_arr, thresholds)
-    auc_score = auc_from_curve(fprs, tprs)
+    fpr_arr = np.asarray(fprs, dtype=np.float64)
+    tpr_arr = np.asarray(tprs, dtype=np.float64)
+    order = np.argsort(fpr_arr)
+    fpr_sorted = fpr_arr[order]
+    tpr_sorted = tpr_arr[order]
+    auc = float(np.trapezoid(tpr_sorted, fpr_sorted))
 
-    fig, ax = plt.subplots(figsize=(6, 6))
-    ax.plot(fprs, tprs, marker="o")
-    ax.plot([0, 1], [0, 1], linestyle="--", color="gray")
-    ax.set_xlabel("False Positive Rate")
-    ax.set_ylabel("True Positive Rate")
-    ax.set_title(f"CFAD ROC curve (AUC = {auc_score:.3f})")
-    ax.grid(True, alpha=0.3)
-    out_path = Path(__file__).resolve().parent / "roc_curve.png"
-    fig.savefig(out_path, dpi=150)
-    print(f"Saved ROC curve to {out_path}")
+    print(f"AUC = {auc:.3f}")
+
+    out_dir = Path(__file__).resolve().parent
+    fig, ax = plt.subplots(figsize=(7, 6))
+    ax.plot(fpr_sorted, tpr_sorted, marker="o", linewidth=1.5, label=f"CFAD (AUC={auc:.3f})")
+    ax.plot([0.0, 1.0], [0.0, 1.0], linestyle="--", color="gray", linewidth=1.0)
+    ax.set_xlim(0.0, 1.0)
+    ax.set_ylim(0.0, 1.0)
+    ax.set_xlabel("FPR")
+    ax.set_ylabel("TPR")
+    ax.set_title("CFAD Detector ROC — Gaussian vs Lévy-stable regime shift")
+    ax.legend(loc="lower right")
+    ax.grid(alpha=0.3)
+    fig.tight_layout()
+    fig.savefig(out_dir / "roc_curve.png", dpi=150)
+
+    (out_dir / "roc_auc.txt").write_text(f"{auc}\n", encoding="utf-8")
 
 
 if __name__ == "__main__":

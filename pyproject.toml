@@ -43,6 +43,9 @@ Homepage = "https://github.com/diogoribeiro7/cfad"
 Repository = "https://github.com/diogoribeiro7/cfad"
 Documentation = "https://cfad.readthedocs.io"
 
+[project.scripts]
+cfad = "cfad.cli:main"
+
 [tool.pytest.ini_options]
 testpaths = ["tests"]
 addopts = "-v"

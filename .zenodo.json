@@ -1,0 +1,38 @@
+{
+  "title": "cfad: Characteristic Function Anomaly Detector for Financial Time Series",
+  "description": "Python package (with Cython C extensions) for detecting structural breaks in financial time series using contour integrals of the empirical characteristic function in the complex plane. Implements rolling ECF estimation, rectangular contour scoring, parametric CF model comparison (Gaussian, NIG, CGMY, Lévy-stable), and CUSUM sequential detection.",
+  "creators": [
+    {
+      "name": "Ribeiro, Diogo",
+      "affiliation": "ESMAD – Escola Superior de Média Arte e Design, Instituto Politécnico do Porto",
+      "orcid": "0009-0001-2022-7072"
+    }
+  ],
+  "keywords": [
+    "anomaly detection",
+    "characteristic function",
+    "contour integration",
+    "residue theorem",
+    "Lévy processes",
+    "NIG",
+    "CGMY",
+    "Lévy-stable",
+    "financial time series",
+    "change-point detection",
+    "CUSUM",
+    "Python",
+    "Cython",
+    "econometrics",
+    "mathematical finance"
+  ],
+  "license": "MIT",
+  "upload_type": "software",
+  "access_right": "open",
+  "related_identifiers": [
+    {
+      "identifier": "https://github.com/diogoribeiro7/cfad",
+      "relation": "isSupplementTo",
+      "scheme": "url"
+    }
+  ]
+}

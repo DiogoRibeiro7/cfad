@@ -42,6 +42,8 @@ docs = ["sphinx", "sphinx-rtd-theme", "numpydoc"]
 Homepage = "https://github.com/diogoribeiro7/cfad"
 Repository = "https://github.com/diogoribeiro7/cfad"
 Documentation = "https://cfad.readthedocs.io"
+Changelog = "https://github.com/diogoribeiro7/cfad/blob/main/CHANGELOG.md"
+"Bug Tracker" = "https://github.com/diogoribeiro7/cfad/issues"
 
 [project.scripts]
 cfad = "cfad.cli:main"

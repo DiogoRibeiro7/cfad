@@ -2,6 +2,7 @@
 import numpy as np
 import pytest
 from cfad import detect, RollingDetector
+from cfad.residue_score import normalise_scores, rolling_pvalue, threshold_by_fpr
 
 
 def make_returns_with_jump(n=500, jump_at=350, jump_size=0.15):
@@ -31,3 +32,37 @@ def test_report_summary_string():
     s = report.summary()
     assert "CFAD" in s
     assert "Alarms" in s
+
+
+def test_normalise_zscore_mean_zero():
+    rng = np.random.default_rng(321)
+    scores = rng.normal(loc=2.0, scale=0.7, size=2048).astype(np.float64)
+    zscores = normalise_scores(scores, method="zscore")
+    assert float(np.mean(zscores)) == pytest.approx(0.0, abs=1e-12)
+    assert float(np.std(zscores)) == pytest.approx(1.0, rel=1e-6)
+
+
+def test_normalise_mad_robust():
+    scores = np.linspace(-1.0, 1.0, 101, dtype=np.float64)
+    scores[-1] = 50.0
+    mad_scaled = normalise_scores(scores, method="mad")
+    assert float(np.median(np.abs(mad_scaled[:-1]))) < 1.0
+    assert float(mad_scaled[-1]) > 20.0
+
+
+def test_rolling_pvalue_shape():
+    scores = np.linspace(-2.0, 2.0, 20, dtype=np.float64)
+    window = 6
+    pvalues = rolling_pvalue(scores, window=window, dist="empirical")
+    assert pvalues.shape == scores.shape
+    assert np.all(np.isnan(pvalues[:window]))
+    assert np.all((pvalues[window:] >= 0.0) & (pvalues[window:] <= 1.0))
+
+
+def test_threshold_by_fpr():
+    rng = np.random.default_rng(12345)
+    calibration_scores = rng.normal(0.0, 1.0, 10_000).astype(np.float64)
+    scores = rng.normal(0.0, 1.0, 10_000).astype(np.float64)
+    threshold = threshold_by_fpr(scores, calibration_scores, fpr=0.05)
+    realised_fpr = float(np.mean(calibration_scores > threshold))
+    assert realised_fpr == pytest.approx(0.05, abs=0.01)

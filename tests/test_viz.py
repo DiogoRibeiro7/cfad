@@ -8,6 +8,9 @@ matplotlib.use("Agg")
 
 import numpy as np
 from matplotlib.figure import Figure
+from pathlib import Path
+import shutil
+import uuid
 
 from cfad.detection import AnomalyReport
 from cfad.viz import (
@@ -67,7 +70,12 @@ def test_plot_detection_timeline_with_events():
     _ = plot_detection_timeline(report, returns=None, events={"test event": 50})
 
 
-def test_savepath_creates_file(tmp_path):
-    out = tmp_path / "test_cf.png"
-    _ = plot_cf_families(savepath=str(out))
-    assert out.exists()
+def test_savepath_creates_file():
+    temp_dir = Path.cwd() / ".tmp_viz_tests" / f"cfad_viz_{uuid.uuid4().hex}"
+    temp_dir.mkdir(parents=True, exist_ok=True)
+    try:
+        out = temp_dir / "test_cf.png"
+        _ = plot_cf_families(savepath=str(out))
+        assert out.exists()
+    finally:
+        shutil.rmtree(temp_dir, ignore_errors=True)

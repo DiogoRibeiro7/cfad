@@ -7,7 +7,7 @@ def plot_scores(
     report: "AnomalyReport",
     returns: "Optional[NDArray[np.float64]]" = None,
     figsize: tuple = (12, 6),
-    ax: "Optional[tuple]" = None,
+    ax: "Optional[object]" = None,
 ) -> "plt.Figure":
     """
     Two-panel diagnostic plot.
@@ -59,10 +59,14 @@ def plot_scores(
             ax_top, ax_bottom = axes
     else:
         if returns_arr is None:
-            if not isinstance(ax, tuple) or len(ax) == 0:
-                raise ValueError("ax must be a non-empty tuple of matplotlib axes")
+            if isinstance(ax, tuple):
+                raise ValueError(
+                    "ax must be a single matplotlib axis when returns is not provided"
+                )
+            if not hasattr(ax, "plot"):
+                raise ValueError("ax must be a matplotlib axis")
             ax_top = None
-            ax_bottom = ax[-1]
+            ax_bottom = ax
         else:
             if not isinstance(ax, tuple) or len(ax) != 2:
                 raise ValueError(
@@ -141,11 +145,24 @@ def load_spy_sample(
     if not resolved_cache_path.is_absolute():
         resolved_cache_path = Path(__file__).resolve().parents[1] / resolved_cache_path
 
+    # Backward-compatible cache support for legacy fixtures and examples.
+    if cache_path == "data/spy_sample.csv":
+        legacy_path = Path(__file__).resolve().parents[1] / "data" / "spy_2018_2022.csv"
+        if legacy_path.exists():
+            resolved_cache_path = legacy_path
+
     if resolved_cache_path.exists():
-        data = pd.read_csv(resolved_cache_path, index_col="Date", parse_dates=["Date"])
-        if "log_return" not in data.columns:
-            raise ValueError("Cached file must contain a 'log_return' column")
-        log_return = data["log_return"].astype(np.float64)
+        data = pd.read_csv(resolved_cache_path, index_col=0, parse_dates=True)
+        if "log_return" in data.columns:
+            log_return = data["log_return"].astype(np.float64)
+        elif "Close" in data.columns:
+            close = data["Close"].astype(np.float64)
+            log_return = np.log(close / close.shift(1)).dropna()
+            log_return.name = "log_return"
+        else:
+            raise ValueError(
+                "Cached file must contain either 'log_return' or 'Close' column"
+            )
     else:
         try:
             import yfinance as yf

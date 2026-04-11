@@ -4,9 +4,11 @@ from __future__ import annotations
 
 import importlib
 import json
+import os
 import re
 import subprocess
 import sys
+import uuid
 from dataclasses import dataclass
 from pathlib import Path
 
@@ -17,6 +19,8 @@ except ImportError:  # pragma: no cover
 
 
 ROOT = Path(__file__).resolve().parents[1]
+if str(ROOT) not in sys.path:
+    sys.path.insert(0, str(ROOT))
 
 
 @dataclass
@@ -116,11 +120,19 @@ def _check_import_all_modules() -> tuple[bool, str]:
 
 
 def _check_pytest_passes() -> tuple[bool, str]:
+    tmp_root = ROOT / ".release_tmp" / f"pytest_{uuid.uuid4().hex}"
+    tmp_root.mkdir(parents=True, exist_ok=True)
+    env = os.environ.copy()
+    env["TMP"] = str(tmp_root)
+    env["TEMP"] = str(tmp_root)
+    env["PYTEST_DEBUG_TEMPROOT"] = str(tmp_root)
+
     proc = subprocess.run(
         [sys.executable, "-m", "pytest", "tests/"],
         cwd=ROOT,
         capture_output=True,
         text=True,
+        env=env,
     )
     if proc.returncode == 0:
         return True, "pytest tests/ passed"

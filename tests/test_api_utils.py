@@ -120,7 +120,7 @@ def test_plot_scores_invalid_axes():
         )
 
 
-def test_load_spy_sample_cached(tmp_path):
+def test_load_spy_sample_cached():
     data_path = Path(__file__).resolve().parents[1] / "data" / "spy_2018_2022.csv"
     data_path.parent.mkdir(parents=True, exist_ok=True)
     df = pd.DataFrame(

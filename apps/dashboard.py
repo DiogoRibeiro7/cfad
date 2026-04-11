@@ -293,13 +293,29 @@ def _run_bootstrap_plot(
     if cfad_plot_bootstrap_bands is not None:
         try:
             return cfad_plot_bootstrap_bands(
-                report=report,
                 returns=returns,
                 n_bootstrap=n_bootstrap,
+                window=int(params["window"]),
+                step=int(params["step"]),
+                xi_max=float(params["xi_max"]),
+                n_xi=int(params["n_xi"]),
+                height=float(params["height"]),
+                h=float(params["h"]),
+                calibration_frac=float(params["calibration_frac"]),
             )
         except TypeError:
             try:
-                return cfad_plot_bootstrap_bands(report, returns, n_bootstrap)
+                return cfad_plot_bootstrap_bands(
+                    returns,
+                    n_bootstrap,
+                    int(params["window"]),
+                    int(params["step"]),
+                    float(params["xi_max"]),
+                    int(params["n_xi"]),
+                    float(params["height"]),
+                    float(params["h"]),
+                    float(params["calibration_frac"]),
+                )
             except Exception:
                 pass
         except Exception:
@@ -416,8 +432,13 @@ def main() -> None:
                         "calibration_frac": calibration_frac,
                     }
                     with st.spinner("Computing..."):
+                        detect_input = (
+                            pd.Series(returns, index=dates, name="return")
+                            if dates is not None and len(dates) == len(returns)
+                            else returns
+                        )
                         report = detect(
-                            returns,
+                            detect_input,
                             window=window,
                             step=step,
                             xi_range=(-xi_max, xi_max),

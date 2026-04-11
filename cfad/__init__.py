@@ -35,6 +35,7 @@ Epps, T. W. & Pulley, L. B. (1983). A test for normality based on the
 from cfad.api import compare_models, detect
 from cfad.detection import AnomalyReport, RollingDetector, StreamDetector
 from cfad.empirical_cf import ecf_at, rolling_ecf
+from cfad.gof import aic_table, cf_distance, epps_pulley_test, rolling_gof
 from cfad.models.cgmy import CGMYCF
 from cfad.models.gaussian import GaussianCF
 from cfad.models.levy_stable import LevyStableCF
@@ -53,6 +54,10 @@ __all__ = [
     "AnomalyReport",
     "ecf_at",
     "rolling_ecf",
+    "cf_distance",
+    "aic_table",
+    "rolling_gof",
+    "epps_pulley_test",
     "GaussianCF",
     "NIGCF",
     "CGMYCF",

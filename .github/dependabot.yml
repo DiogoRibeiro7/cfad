@@ -1,0 +1,27 @@
+version: 2
+updates:
+  - package-ecosystem: "pip"
+    directory: "/"
+    target-branch: "develop"
+    schedule:
+      interval: "weekly"
+      day: "monday"
+      time: "04:00"
+      timezone: "Europe/Lisbon"
+    open-pull-requests-limit: 10
+    labels:
+      - "dependencies"
+      - "python"
+
+  - package-ecosystem: "github-actions"
+    directory: "/"
+    target-branch: "develop"
+    schedule:
+      interval: "weekly"
+      day: "monday"
+      time: "04:30"
+      timezone: "Europe/Lisbon"
+    open-pull-requests-limit: 10
+    labels:
+      - "dependencies"
+      - "github-actions"

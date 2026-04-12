@@ -34,6 +34,8 @@ htmlcov/
 # Local data and runtime files
 data/*.csv
 .env
+.tmp*/
+.release_tmp/
 
 # IDE and OS files
 .vscode/

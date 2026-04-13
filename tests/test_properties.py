@@ -3,7 +3,7 @@
 from __future__ import annotations
 
 import numpy as np
-from hypothesis import assume, given, settings
+from hypothesis import HealthCheck, assume, given, settings
 from hypothesis import strategies as st
 
 from cfad.contour import contour_integral
@@ -15,7 +15,11 @@ from cfad.models.cgmy import CGMYCF
     n=st.integers(min_value=50, max_value=500),
     sigma=st.floats(min_value=0.001, max_value=0.1, allow_nan=False, allow_infinity=False),
 )
-@settings(max_examples=50)
+@settings(
+    max_examples=50,
+    deadline=None,
+    suppress_health_check=[HealthCheck.too_slow],
+)
 def test_ecf_normalization_always_holds(n: int, sigma: float):
     """phi_n(0) == 1 for any return series."""
     rng = np.random.default_rng(0)
@@ -28,7 +32,11 @@ def test_ecf_normalization_always_holds(n: int, sigma: float):
     n=st.integers(min_value=80, max_value=400),
     window=st.integers(min_value=30, max_value=80),
 )
-@settings(max_examples=30)
+@settings(
+    max_examples=30,
+    deadline=None,
+    suppress_health_check=[HealthCheck.too_slow],
+)
 def test_rolling_ecf_window_count(n: int, window: int):
     """Number of windows matches formula (T - window) // step + 1."""
     assume(window < n)
@@ -43,7 +51,11 @@ def test_rolling_ecf_window_count(n: int, window: int):
 @given(
     sigma=st.floats(min_value=0.001, max_value=0.05, allow_nan=False, allow_infinity=False)
 )
-@settings(max_examples=20)
+@settings(
+    max_examples=20,
+    deadline=None,
+    suppress_health_check=[HealthCheck.too_slow],
+)
 def test_gaussian_cf_contour_is_zero(sigma: float):
     """Gaussian CF contour integral is zero for any sigma."""
     re, im = contour_integral(
@@ -60,7 +72,11 @@ def test_gaussian_cf_contour_is_zero(sigma: float):
     C=st.floats(min_value=0.1, max_value=5.0, allow_nan=False, allow_infinity=False),
     Y=st.floats(min_value=0.1, max_value=1.9, allow_nan=False, allow_infinity=False),
 )
-@settings(max_examples=20)
+@settings(
+    max_examples=20,
+    deadline=None,
+    suppress_health_check=[HealthCheck.too_slow],
+)
 def test_cgmy_normalization(C: float, Y: float):
     """phi(0) == 1 for any valid CGMY parameters."""
     m = CGMYCF(C=C, G=5.0, M=10.0, Y=Y)

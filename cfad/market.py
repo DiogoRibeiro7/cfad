@@ -123,7 +123,7 @@ def load_returns(
 
     out = pd.concat(series_list, axis=1)
     out.index = pd.to_datetime(out.index)
-    out = out.sort_index().dropna(how="all")
+    out = out.sort_index().dropna(how="any")
     return out
 
 

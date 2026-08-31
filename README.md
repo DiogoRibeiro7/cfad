@@ -46,6 +46,27 @@ contains release scaffolding, documentation, benchmarks, notebooks, and a draft
 software paper, but this README does not claim a PyPI or JOSS release unless a
 verifiable release exists.
 
+### Current validation boundary
+
+Two frozen validation programmes have now tested the corrected method rather
+than the retired contour-residue interpretation.
+
+The v2 sequential benchmark showed that Monte Carlo calibration can control the
+Gaussian-null false-alarm rate, but the Gaussian-reference score was not robust
+to a stable Student-t in-control law and had weak first-alarm power once false
+alarms were controlled. The v3 score-level ablation then removed CUSUM and
+separated frequency scaling from reference-law choice. Standardizing each window
+corrected the legacy score's sensitivity to pure variance changes, and a frozen
+empirical in-control ECF produced strong null-law stability. However, the
+empirical-reference score achieved AUC 0.646 for a Gaussian-to-Student-t shape
+change and 0.783 for a Gaussian-to-skew change, for an average of 0.715 versus
+0.738 for a simple kurtosis-distance comparator.
+
+Accordingly, the current evidence does **not** establish that CFAD is a validated
+sequential detector or that its ECF score outperforms simpler moment summaries.
+The negative v2 and v3 results are retained as reproducible evidence in
+`benchmarks/` and are treated as design constraints rather than tuned away.
+
 ## Installation
 
 From the development branch:
@@ -140,17 +161,15 @@ The repository includes:
 
 The main scientific validation target is not "does an alarm fire on one famous
 market event?" but how the detector behaves under controlled null and
-alternative data-generating processes. The benchmark layer should report, at a
-minimum:
+alternative data-generating processes. The benchmark layer reports false-positive
+behaviour, power/discrimination under prespecified shape changes, specificity to
+location/scale changes, and comparison against simpler baselines.
 
-- false-positive rate under an explicit in-control distribution;
-- power under prespecified shape changes;
-- detection delay;
-- sensitivity to window length and frequency cutoff;
-- comparison against simpler baselines.
-
-Existing figures and benchmark artifacts should be treated as provisional until
-they are regenerated from the corrected score definition.
+Frozen failed experiments are part of the evidence record. In particular,
+`benchmarks/v2_failed_calibration_record.json` records the failed sequential
+screen and `benchmarks/v3_failed_score_validation_record.json` records the failed
+score-level screen. Those failures are not retroactively reclassified after
+parameter or method changes.
 
 ## Documentation and paper
 

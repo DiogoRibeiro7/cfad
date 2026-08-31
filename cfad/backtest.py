@@ -144,9 +144,7 @@ class WalkForwardBacktest:
             fold_len = base + (1 if i < extra else 0)
             test_end = test_start + fold_len
             train_end = test_start
-            train_start = (
-                0 if self.expanding else max(0, train_end - train_size_fixed)
-            )
+            train_start = 0 if self.expanding else max(0, train_end - train_size_fixed)
 
             if train_end - train_start < window:
                 raise ValueError("Training fold is shorter than detector window")
@@ -304,9 +302,7 @@ class WalkForwardBacktest:
             else:
                 left = date_values[pos - 1]
                 right = date_values[pos]
-                nearest = (
-                    pos - 1 if abs(target - left) <= abs(right - target) else pos
-                )
+                nearest = pos - 1 if abs(target - left) <= abs(right - target) else pos
             break_indices.append(nearest)
 
         if not break_indices:

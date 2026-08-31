@@ -2,14 +2,17 @@
 
 from __future__ import annotations
 
+import warnings
 from pathlib import Path
 from typing import Optional
-import warnings
 
+import matplotlib.pyplot as plt
 import numpy as np
+from matplotlib.figure import Figure
 from numpy.typing import NDArray
 
 from cfad.api import detect
+from cfad.detection import AnomalyReport
 
 
 def _align_series(series: NDArray[np.float64], target_len: int) -> NDArray[np.float64]:
@@ -123,13 +126,18 @@ def bootstrap_scores(
             n_xi=n_xi,
             step=step,
         )
-        return _align_series(np.asarray(report.scores, dtype=np.float64), target_len)
+        return _align_series(
+            np.asarray(report.scores, dtype=np.float64),
+            target_len,
+        )
 
     if n_jobs != 1:
         try:
             from joblib import Parallel, delayed
 
-            runs = Parallel(n_jobs=n_jobs)(delayed(_one_run)(int(seed)) for seed in seeds)
+            runs = Parallel(n_jobs=n_jobs)(
+                delayed(_one_run)(int(seed)) for seed in seeds
+            )
         except Exception:
             runs = [_one_run(int(seed)) for seed in seeds]
     else:
@@ -148,7 +156,10 @@ def bootstrap_scores(
             np.quantile(score_mat, 1.0 - alpha / 2.0, axis=0),
             dtype=np.float64,
         ),
-        "std": np.asarray(np.std(score_mat, axis=0, ddof=ddof), dtype=np.float64),
+        "std": np.asarray(
+            np.std(score_mat, axis=0, ddof=ddof),
+            dtype=np.float64,
+        ),
     }
 
 
@@ -206,12 +217,10 @@ def score_stability(
 
 def plot_bootstrap_bands(
     result: dict,
-    report: "AnomalyReport",
+    report: AnomalyReport,
     savepath: Optional[str] = None,
-) -> "plt.Figure":
+) -> Figure:
     """Plot observed ECF-shape scores with pointwise bootstrap bands."""
-    import matplotlib.pyplot as plt
-
     required = {"mean", "lower", "upper"}
     missing = required.difference(result.keys())
     if missing:
@@ -235,7 +244,11 @@ def plot_bootstrap_bands(
         and len(report.dates) > 0
         and len(report.window_end_indices) >= n
     ):
-        idx = np.clip(report.window_end_indices[:n] - 1, 0, len(report.dates) - 1)
+        idx = np.clip(
+            report.window_end_indices[:n] - 1,
+            0,
+            len(report.dates) - 1,
+        )
         x = report.dates[idx]
         x_label = "Date"
     else:
@@ -247,7 +260,12 @@ def plot_bootstrap_bands(
     ax.fill_between(x, lower, upper, alpha=0.2, label="Bootstrap CI")
     ax.plot(x, mean, linestyle="--", linewidth=1.2, label="Bootstrap mean")
     threshold = float(report.mu0 + 3.0 * report.sigma0)
-    ax.axhline(threshold, linestyle="--", linewidth=1.0, label="mu0 + 3*sigma0")
+    ax.axhline(
+        threshold,
+        linestyle="--",
+        linewidth=1.0,
+        label="mu0 + 3*sigma0",
+    )
     ax.set_xlabel(x_label)
     ax.set_ylabel("ECF-shape score")
     ax.set_title("Bootstrap confidence bands for CFAD scores")

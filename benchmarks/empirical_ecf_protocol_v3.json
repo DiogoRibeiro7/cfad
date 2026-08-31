@@ -1,6 +1,12 @@
 {
   "protocol_version": "3.0",
   "status": "frozen-before-v3-results",
+  "amendment": {
+    "id": "v3.0-pre-result-seed-amendment-1",
+    "reason": "The originally frozen seed_base=901000 was discovered to overlap v2 evaluation seed blocks before any v3 benchmark result or artifact existed.",
+    "evidence_state": "The first v3 workflow stopped at lint before the benchmark step and produced zero artifacts.",
+    "change": "Only monte_carlo.seed_base changes from 901000 to 2001000. All methods, scenarios, sample sizes, frequency grids, estimands and success criteria are unchanged."
+  },
   "purpose": "Determine whether CF-based shape scoring adds information beyond kurtosis once frequency scaling and the in-control reference law are separated from the sequential alarm layer.",
   "relationship_to_v2": {
     "v2_status": "failed-publication-screen",
@@ -57,7 +63,7 @@
   },
   "monte_carlo": {
     "replicates_per_scenario": 1000,
-    "seed_base": 901000,
+    "seed_base": 2001000,
     "scenario_seed_stride": 100000,
     "seed_rule": "All v3 seeds are disjoint from v1 and v2. Every method sees identical generated series within each scenario/replicate."
   },

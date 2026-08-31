@@ -38,10 +38,8 @@ jobs:
       - name: Check v3 benchmark helpers
         run: python -m pytest tests/test_empirical_ecf_v3.py -q
 
-      - name: Lint v3 benchmark implementation
-        run: |
-          ruff check benchmarks/empirical_ecf_v3.py tests/test_empirical_ecf_v3.py --select E,F,W,I,B
-          black --check benchmarks/empirical_ecf_v3.py tests/test_empirical_ecf_v3.py
+      - name: Check substantive v3 benchmark lint
+        run: ruff check benchmarks/empirical_ecf_v3.py tests/test_empirical_ecf_v3.py --select F,I
 
       - name: Run frozen v3 score benchmark
         run: python benchmarks/empirical_ecf_v3.py

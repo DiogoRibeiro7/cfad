@@ -1,4 +1,4 @@
-"""Command-line interface for cfad."""
+"""Command-line interface for CFAD."""
 
 from __future__ import annotations
 
@@ -19,36 +19,35 @@ def _load_returns(
     column: str,
     date_col: str | None = None,
 ) -> pd.Series | np.ndarray:
-    """Load returns from CSV as either dated Series or plain ndarray."""
+    """Load returns from CSV as either a dated Series or a NumPy array."""
     parse_dates = [date_col] if date_col else False
-    df = pd.read_csv(input_path, parse_dates=parse_dates)
-    if column not in df.columns:
+    frame = pd.read_csv(input_path, parse_dates=parse_dates)
+    if column not in frame.columns:
         raise KeyError(f"Column '{column}' not found in {input_path}")
 
-    values = pd.to_numeric(df[column], errors="coerce")
+    values = pd.to_numeric(frame[column], errors="coerce")
     if date_col is None:
         return values.dropna().to_numpy(dtype=np.float64)
 
-    if date_col not in df.columns:
+    if date_col not in frame.columns:
         raise KeyError(f"Date column '{date_col}' not found in {input_path}")
-    dates = pd.to_datetime(df[date_col], errors="coerce")
+    dates = pd.to_datetime(frame[date_col], errors="coerce")
     series = pd.Series(values.to_numpy(dtype=np.float64), index=dates, name=column)
-    series = series[series.index.notna()].dropna()
-    return series
+    return series[series.index.notna()].dropna()
 
 
 def _detect_to_dataframe(report, include_dates: bool = True) -> pd.DataFrame:
     """Convert detector output to a tabular frame for CSV export."""
-    n = len(report.scores)
-    alarm_flags = np.zeros(n, dtype=bool)
+    n_windows = len(report.scores)
+    alarm_flags = np.zeros(n_windows, dtype=bool)
     valid_alarm_idx = report.alarm_indices[
-        (report.alarm_indices >= 0) & (report.alarm_indices < n)
+        (report.alarm_indices >= 0) & (report.alarm_indices < n_windows)
     ]
     alarm_flags[valid_alarm_idx] = True
 
-    out = pd.DataFrame(
+    output = pd.DataFrame(
         {
-            "window_idx": np.arange(n, dtype=np.int64),
+            "window_idx": np.arange(n_windows, dtype=np.int64),
             "window_end_index": report.window_end_indices,
             "score": report.scores,
             "score_z": normalise_scores(report.scores, method="zscore"),
@@ -63,20 +62,21 @@ def _detect_to_dataframe(report, include_dates: bool = True) -> pd.DataFrame:
             0,
             len(report.dates) - 1,
         )
-        out["window_end_date"] = pd.to_datetime(report.dates[date_idx]).astype(str)
-    return out
+        output["window_end_date"] = pd.to_datetime(report.dates[date_idx]).astype(str)
+    return output
 
 
 def _run_detect(args: argparse.Namespace) -> int:
+    """Execute the detect subcommand."""
     data = _load_returns(args.input, args.column, args.date_col)
     report = detect(
         data,
         window=args.window,
         step=args.step,
         h=args.h,
+        k=args.k,
         xi_range=(args.xi_min, args.xi_max),
         n_xi=args.n_xi,
-        height=args.height,
         calibration_frac=args.calibration_frac,
     )
 
@@ -103,6 +103,7 @@ def _run_detect(args: argparse.Namespace) -> int:
 
 
 def _run_compare(args: argparse.Namespace) -> int:
+    """Execute the model-comparison subcommand."""
     returns = _load_returns(args.input, args.column, date_col=None)
     result = compare_models(np.asarray(returns, dtype=np.float64))
 
@@ -130,52 +131,40 @@ def _run_compare(args: argparse.Namespace) -> int:
 
 
 def build_parser() -> argparse.ArgumentParser:
-    """Create CLI argument parser."""
+    """Create the CLI argument parser."""
     parser = argparse.ArgumentParser(
         prog="cfad",
-        description=(
-            "Characteristic Function Anomaly Detector — detect structural "
-            "breaks in return series."
-        ),
+        description="ECF-based distributional-shape anomaly detection for returns.",
     )
     subparsers = parser.add_subparsers(dest="command", required=True)
 
-    # --- detect subcommand ---
-    p_detect = subparsers.add_parser("detect", help="Run detector on a CSV file")
-    p_detect.add_argument(
-        "input", type=pathlib.Path, help="CSV file with returns column"
-    )
-    p_detect.add_argument(
-        "--column",
-        default="return",
-        help="Column name for returns (default: return)",
-    )
-    p_detect.add_argument(
-        "--date-col",
-        default=None,
-        help="Date column name (optional)",
-    )
-    p_detect.add_argument("--window", type=int, default=60)
-    p_detect.add_argument("--step", type=int, default=1)
-    p_detect.add_argument("--h", type=float, default=5.0)
-    p_detect.add_argument("--xi-min", type=float, default=-10.0)
-    p_detect.add_argument("--xi-max", type=float, default=10.0)
-    p_detect.add_argument("--n-xi", type=int, default=128)
-    p_detect.add_argument("--height", type=float, default=0.2)
-    p_detect.add_argument("--calibration-frac", type=float, default=0.3)
-    p_detect.add_argument(
+    detect_parser = subparsers.add_parser("detect", help="Run detector on a CSV file")
+    detect_parser.add_argument("input", type=pathlib.Path, help="CSV file with returns column")
+    detect_parser.add_argument("--column", default="return", help="Returns column name")
+    detect_parser.add_argument("--date-col", default=None, help="Optional date column name")
+    detect_parser.add_argument("--window", type=int, default=60)
+    detect_parser.add_argument("--step", type=int, default=1)
+    detect_parser.add_argument("--k", type=float, default=0.5)
+    detect_parser.add_argument("--h", type=float, default=5.0)
+    detect_parser.add_argument("--xi-min", type=float, default=-10.0)
+    detect_parser.add_argument("--xi-max", type=float, default=10.0)
+    detect_parser.add_argument("--n-xi", type=int, default=128)
+    detect_parser.add_argument("--calibration-frac", type=float, default=0.3)
+    detect_parser.add_argument(
         "--output",
         type=pathlib.Path,
         default=None,
-        help="Save scores + CUSUM to CSV (optional)",
+        help="Optional CSV path for scores and CUSUM diagnostics",
     )
-    p_detect.add_argument("--format", choices=["text", "json"], default="text")
+    detect_parser.add_argument("--format", choices=["text", "json"], default="text")
 
-    # --- compare subcommand ---
-    p_compare = subparsers.add_parser("compare", help="Compare Gaussian vs NIG model fit")
-    p_compare.add_argument("input", type=pathlib.Path)
-    p_compare.add_argument("--column", default="return")
-    p_compare.add_argument("--format", choices=["text", "json"], default="text")
+    compare_parser = subparsers.add_parser(
+        "compare",
+        help="Compare Gaussian and NIG distributional fit",
+    )
+    compare_parser.add_argument("input", type=pathlib.Path)
+    compare_parser.add_argument("--column", default="return")
+    compare_parser.add_argument("--format", choices=["text", "json"], default="text")
 
     return parser
 
@@ -190,7 +179,7 @@ def main() -> int:
             return _run_detect(args)
         if args.command == "compare":
             return _run_compare(args)
-    except Exception as exc:  # pragma: no cover - top-level UX guard
+    except Exception as exc:  # pragma: no cover - top-level CLI guard
         print(f"cfad: error: {exc}", file=sys.stderr)
         return 2
 

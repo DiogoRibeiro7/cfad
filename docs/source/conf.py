@@ -7,7 +7,7 @@ sys.path.insert(0, os.path.abspath("../.."))
 
 project = "cfad"
 author = "Diogo Ribeiro"
-release = "0.2.0"
+release = "0.2.1"
 
 extensions = [
     "sphinx.ext.autodoc",

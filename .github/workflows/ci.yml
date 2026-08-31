@@ -61,7 +61,7 @@ jobs:
           python -m pip install -e ".[dev]" --no-build-isolation
 
       - name: Ruff
-        run: ruff check cfad tests
+        run: ruff check cfad tests apps
 
       - name: Black
-        run: black --check cfad tests
+        run: black --check cfad tests apps

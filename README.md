@@ -1,7 +1,7 @@
 # cfad — Characteristic Function Anomaly Detector
 
 [![License: MIT](https://img.shields.io/badge/License-MIT-yellow.svg)](LICENSE)
-[![CI](https://github.com/DiogoRibeiro7/cfad/actions/workflows/ci.yml/badge.svg?branch=develop)](https://github.com/DiogoRibeiro7/cfad/actions/workflows/ci.yml)
+[![CI](https://github.com/DiogoRibeiro7/cfad/actions/workflows/ci.yml/badge.svg?branch=main)](https://github.com/DiogoRibeiro7/cfad/actions/workflows/ci.yml)
 
 **cfad** is a research-oriented Python package for detecting changes in the
 **distributional shape** of financial returns with empirical characteristic
@@ -43,8 +43,9 @@ Page-CUSUM then converts the score sequence into sequential alarms.
 
 The repository is currently a **research/development project**. The codebase
 contains release scaffolding, documentation, benchmarks, notebooks, and a draft
-software paper, but this README does not claim a PyPI or JOSS release unless a
-verifiable release exists.
+software paper. GitHub releases are archival research-software snapshots; no
+PyPI distribution is claimed unless a separate PyPI publication is explicitly
+performed and verified.
 
 ### Current validation boundary
 
@@ -69,12 +70,12 @@ The negative v2 and v3 results are retained as reproducible evidence in
 
 ## Installation
 
-From the development branch:
+From the default branch:
 
 ```bash
 git clone https://github.com/DiogoRibeiro7/cfad
 cd cfad
-git switch develop
+git switch main
 python -m pip install -e ".[dev]" --no-build-isolation
 ```
 

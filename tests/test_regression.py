@@ -66,7 +66,7 @@ def test_regression_detect_mu0_matches_independent_score_reconstruction():
     expected_mu0 = float(np.mean(manual_scores[:n_cal]))
 
     report = detect(returns, window=window, step=step)
-    assert report.mu0 == np.testing.assert_allclose(
+    np.testing.assert_allclose(
         [report.mu0],
         [expected_mu0],
         atol=1e-12,

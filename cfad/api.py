@@ -3,6 +3,7 @@
 from __future__ import annotations
 
 from typing import Optional, Union
+import warnings
 
 import numpy as np
 from numpy.typing import NDArray
@@ -20,11 +21,13 @@ def detect(
     calibration_frac: float = 0.3,
     k: float = 0.5,
     h: float = 5.0,
+    *,
+    height: float | None = None,
 ) -> AnomalyReport:
     """Detect distributional-shape changes in a financial return series.
 
     Each rolling empirical characteristic function is compared with the
-    Gaussian characteristic function fitted to the same window.  The resulting
+    Gaussian characteristic function fitted to the same window. The resulting
     real-frequency L2 distance is monitored with a two-sided Page-CUSUM.
 
     Parameters
@@ -46,12 +49,24 @@ def detect(
         Dimensionless Page-CUSUM reference value on standardized scores.
     h : float, default=5.0
         CUSUM decision threshold.
+    height : float or None, keyword-only
+        Deprecated compatibility argument from the former empirical-contour
+        implementation. It is ignored by the corrected real-frequency score and
+        will be removed in a future breaking release.
 
     Returns
     -------
     AnomalyReport
         Scores, CUSUM statistics, alarm indices, and optional dates.
     """
+    if height is not None:
+        warnings.warn(
+            "height is deprecated and ignored; CFAD now uses a real-frequency "
+            "ECF shape score. Tune xi_range instead.",
+            DeprecationWarning,
+            stacklevel=2,
+        )
+
     dates = None
     if isinstance(returns, pd.Series):
         dates = returns.index if hasattr(returns.index, "to_pydatetime") else None
@@ -78,7 +93,7 @@ def compare_models(
 ) -> dict[str, object]:
     """Fit Gaussian and NIG models and compare real-frequency ECF distance.
 
-    This model comparison is descriptive evidence about distributional fit.  It
+    This model comparison is descriptive evidence about distributional fit. It
     must not be interpreted as a test for branch cuts or population-CF
     singularities from a finite-sample empirical characteristic function.
     """

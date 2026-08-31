@@ -264,7 +264,9 @@ def calibrate_thresholds(
                     "replicate": replicate,
                     "seed": seed,
                     "n_calibration_scores": scored.n_calibration,
-                    "first_monitor_endpoint": int(scored.end_indices[scored.n_calibration]),
+                    "first_monitor_endpoint": int(
+                        scored.end_indices[scored.n_calibration]
+                    ),
                     "max_path_statistic": maximum,
                 }
             )
@@ -415,7 +417,9 @@ def evaluate(
                         "power_ci_high": hi,
                         "late_alarm_rate": cell["late_alarms"] / n_rep,
                         "no_alarm_rate": cell["no_alarms"] / n_rep,
-                        "median_delay": float(np.median(delays)) if delays.size else None,
+                        "median_delay": (
+                            float(np.median(delays)) if delays.size else None
+                        ),
                         "delay_q25": float(np.quantile(delays, 0.25))
                         if delays.size
                         else None,
@@ -676,7 +680,12 @@ def main() -> None:
         encoding="utf-8",
     )
 
-    print(json.dumps({"thresholds": thresholds, "gate": gate, "screen": screen}, indent=2))
+    print(
+        json.dumps(
+            {"thresholds": thresholds, "gate": gate, "screen": screen},
+            indent=2,
+        )
+    )
 
 
 if __name__ == "__main__":

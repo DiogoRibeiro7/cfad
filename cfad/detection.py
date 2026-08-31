@@ -42,13 +42,24 @@ class AnomalyReport:
 
     @property
     def alarm_dates(self) -> Optional[pd.DatetimeIndex]:
-        """Return dates corresponding to alarm windows when dates are available."""
+        """Return dates corresponding to alarm-window endpoints.
+
+        ``window_end_indices`` use Python's half-open convention and therefore
+        point one position beyond the final observation in each rolling window.
+        """
         if self.dates is None:
             return None
-        valid = self.alarm_indices[self.alarm_indices < len(self.window_end_indices)]
-        win_idx = self.window_end_indices[valid]
-        valid_win = win_idx[win_idx < len(self.dates)]
-        return self.dates[valid_win]
+        valid = self.alarm_indices[
+            (self.alarm_indices >= 0)
+            & (self.alarm_indices < len(self.window_end_indices))
+        ]
+        if valid.size == 0:
+            return pd.DatetimeIndex([])
+        end_positions = self.window_end_indices[valid] - 1
+        in_range = end_positions[
+            (end_positions >= 0) & (end_positions < len(self.dates))
+        ]
+        return self.dates[in_range]
 
     def summary(self) -> str:
         """Return a compact human-readable report summary."""
@@ -61,8 +72,9 @@ class AnomalyReport:
             f"  In-control std    : {self.sigma0:.4f}",
             f"  CUSUM threshold   : {self.threshold}",
         ]
-        if self.alarm_dates is not None and n_alarms:
-            lines.append(f"  First alarm       : {self.alarm_dates[0].date()}")
+        alarm_dates = self.alarm_dates
+        if alarm_dates is not None and len(alarm_dates) > 0:
+            lines.append(f"  First alarm       : {alarm_dates[0].date()}")
         return "\n".join(lines)
 
 
@@ -75,7 +87,7 @@ def _cusum_python(
 ) -> tuple[NDArray[np.float64], NDArray[np.float64], NDArray[np.int64]]:
     """Pure-Python two-sided Page-CUSUM fallback.
 
-    The recursion operates on standardized scores.  Consequently ``k`` is a
+    The recursion operates on standardized scores. Consequently ``k`` is a
     dimensionless reference value and must not be multiplied by ``sigma0``.
     """
     if sigma0 <= 0.0:
@@ -85,14 +97,19 @@ def _cusum_python(
     if h <= 0.0:
         raise ValueError("h must be positive")
 
-    n_scores = len(scores)
+    values = np.asarray(scores, dtype=np.float64)
+    if values.ndim != 1:
+        raise ValueError("scores must be one-dimensional")
+    if not np.all(np.isfinite(values)):
+        raise ValueError("scores must contain only finite values")
+
+    positive = np.zeros(values.size, dtype=np.float64)
+    negative = np.zeros(values.size, dtype=np.float64)
+    alarms: list[int] = []
     s_pos = 0.0
     s_neg = 0.0
-    positive = np.zeros(n_scores, dtype=np.float64)
-    negative = np.zeros(n_scores, dtype=np.float64)
-    alarms: list[int] = []
 
-    for t, score in enumerate(np.asarray(scores, dtype=np.float64)):
+    for t, score in enumerate(values):
         z = (float(score) - mu0) / sigma0
         s_pos = max(0.0, s_pos + z - k)
         s_neg = max(0.0, s_neg - z - k)
@@ -121,32 +138,13 @@ def _rolling_moments(
         start = idx * step
         sample = values[start : start + window]
         means[idx] = float(np.mean(sample))
-        stds[idx] = float(np.std(sample, ddof=1)) if window > 1 else 0.0
+        stds[idx] = float(np.std(sample, ddof=1))
 
     return means, stds
 
 
 class RollingDetector:
-    """Rolling ECF shape detector followed by a two-sided Page-CUSUM.
-
-    Parameters
-    ----------
-    window : int
-        Number of returns per ECF estimation window.
-    xi_min, xi_max : float
-        Real-frequency grid bounds for ECF evaluation.
-    n_xi : int
-        Number of frequency grid points.
-    step : int
-        Rolling step (1 = fully overlapping, ``window`` = non-overlapping).
-    calibration_frac : float
-        Fraction of score windows used to estimate the in-control score mean and
-        standard deviation.
-    k : float
-        Dimensionless Page-CUSUM reference value on standardized scores.
-    h : float
-        CUSUM alarm threshold.
-    """
+    """Rolling ECF shape detector followed by a two-sided Page-CUSUM."""
 
     def __init__(
         self,
@@ -183,12 +181,15 @@ class RollingDetector:
         self._mu0: Optional[float] = None
         self._sigma0: Optional[float] = None
 
-    def fit_transform(
+    def score_windows(
         self,
         returns: NDArray[np.float64],
-        dates: Optional[pd.DatetimeIndex] = None,
-    ) -> AnomalyReport:
-        """Run rolling ECF scoring, calibration, and sequential detection."""
+    ) -> tuple[NDArray[np.float64], NDArray[np.int64]]:
+        """Compute rolling ECF-shape scores without fitting CUSUM calibration.
+
+        This separation is useful for walk-forward evaluation: a test fold can
+        be scored without estimating any in-control parameter from the test data.
+        """
         values = np.asarray(returns, dtype=np.float64)
         if values.ndim != 1:
             raise ValueError("returns must be one-dimensional")
@@ -197,9 +198,52 @@ class RollingDetector:
         if not np.all(np.isfinite(values)):
             raise ValueError("returns must contain only finite values")
 
-        ecf_mat, end_idx = rolling_ecf(values, self.xi_grid, self.window, self.step)
+        ecf_mat, end_idx = rolling_ecf(
+            values,
+            self.xi_grid,
+            self.window,
+            self.step,
+        )
         means, stds = _rolling_moments(values, self.window, self.step)
-        scores = gaussian_ecf_distance_scores(ecf_mat, self.xi_grid, means, stds)
+        scores = gaussian_ecf_distance_scores(
+            ecf_mat,
+            self.xi_grid,
+            means,
+            stds,
+        )
+        return (
+            np.asarray(scores, dtype=np.float64),
+            np.asarray(end_idx, dtype=np.int64),
+        )
+
+    def apply_calibration(
+        self,
+        scores: NDArray[np.float64],
+        mu0: float,
+        sigma0: float,
+    ) -> tuple[NDArray[np.float64], NDArray[np.float64], NDArray[np.int64]]:
+        """Apply this detector's CUSUM settings to externally calibrated scores."""
+        cusum_fn = _cusum_c if _HAS_C_EXT else _cusum_python
+        positive, negative, alarms = cusum_fn(
+            np.asarray(scores, dtype=np.float64),
+            float(mu0),
+            float(sigma0),
+            self.k,
+            self.h,
+        )
+        return (
+            np.asarray(positive, dtype=np.float64),
+            np.asarray(negative, dtype=np.float64),
+            np.asarray(alarms, dtype=np.int64),
+        )
+
+    def fit_transform(
+        self,
+        returns: NDArray[np.float64],
+        dates: Optional[pd.DatetimeIndex] = None,
+    ) -> AnomalyReport:
+        """Score windows, estimate in-control moments, and apply CUSUM."""
+        scores, end_idx = self.score_windows(returns)
 
         n_cal = max(10, int(self.calibration_frac * len(scores)))
         n_cal = min(n_cal, len(scores))
@@ -207,21 +251,17 @@ class RollingDetector:
         sigma0 = float(np.std(scores[:n_cal], ddof=1)) if n_cal > 1 else 0.0
         self._sigma0 = max(sigma0, 1e-12)
 
-        cusum_fn = _cusum_c if _HAS_C_EXT else _cusum_python
-        sp, sn, alarms = cusum_fn(
+        positive, negative, alarms = self.apply_calibration(
             scores,
             self._mu0,
             self._sigma0,
-            self.k,
-            self.h,
         )
-
         return AnomalyReport(
-            scores=np.asarray(scores, dtype=np.float64),
-            cusum_pos=np.asarray(sp, dtype=np.float64),
-            cusum_neg=np.asarray(sn, dtype=np.float64),
-            alarm_indices=np.asarray(alarms, dtype=np.int64),
-            window_end_indices=np.asarray(end_idx, dtype=np.int64),
+            scores=scores,
+            cusum_pos=positive,
+            cusum_neg=negative,
+            alarm_indices=alarms,
+            window_end_indices=end_idx,
             dates=dates,
             mu0=self._mu0,
             sigma0=self._sigma0,
@@ -254,6 +294,8 @@ class StreamDetector:
             raise ValueError("mu0 and sigma0 must be both provided or both omitted")
         if sigma0 is not None and sigma0 <= 0.0:
             raise ValueError("sigma0 must be positive")
+        if warmup is not None and warmup < 0:
+            raise ValueError("warmup must be non-negative")
         if k < 0.0:
             raise ValueError("k must be non-negative")
         if h <= 0.0:
@@ -263,12 +305,9 @@ class StreamDetector:
         self.xi_grid = np.linspace(xi_min, xi_max, int(n_xi), dtype=np.float64)
         self.k = float(k)
         self.h = float(h)
-
         self._fixed_mu0 = None if mu0 is None else float(mu0)
         self._fixed_sigma0 = None if sigma0 is None else float(sigma0)
         self.warmup = self.window if warmup is None else int(warmup)
-        if self.warmup < 0:
-            raise ValueError("warmup must be non-negative")
 
         self._buffer: deque[float] = deque(maxlen=self.window)
         self._warmup_scores: list[float] = []

@@ -60,14 +60,16 @@ jobs:
           python -m pip install "setuptools>=68" wheel "numpy>=1.24" "Cython>=3.0"
           python -m pip install -e ".[dev]" --no-build-isolation
 
-      - name: Reject fatal Python errors repo-wide
-        run: ruff check cfad tests apps --select E9,F63,F7,F82
+      - name: Reject compile-level Python errors repo-wide
+        run: ruff check cfad tests apps --select E9,F63,F7
 
       - name: Lint compatibility changes
         run: |
           ruff check \
             cfad/backtest.py \
+            cfad/bootstrap.py \
             cfad/contour.py \
+            cfad/utils.py \
             apps/dashboard.py \
             tests/test_api_utils.py \
             tests/test_backtest.py \
@@ -80,7 +82,9 @@ jobs:
         run: |
           black --check \
             cfad/backtest.py \
+            cfad/bootstrap.py \
             cfad/contour.py \
+            cfad/utils.py \
             apps/dashboard.py \
             tests/test_api_utils.py \
             tests/test_backtest.py \

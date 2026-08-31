@@ -3,209 +3,217 @@ title: 'cfad: Characteristic Function Anomaly Detection for Financial Time Serie
 tags:
   - Python
   - anomaly detection
-  - characteristic function
-  - contour integration
-  - Lévy processes
+  - empirical characteristic function
   - change-point detection
   - financial econometrics
+  - CUSUM
 authors:
   - name: Diogo Ribeiro
     orcid: 0009-0001-2022-7072
     affiliation: 1
 affiliations:
-  - name: ESMAD – Escola Superior de Média Arte e Design, Instituto Politécnico do Porto, Portugal
+  - name: Faculty of Media Arts and Design, Technical University of Porto, Portugal
     index: 1
-date: 2025
 bibliography: references.bib
 ---
 
 # Summary
 
-`cfad` is a Python package for detecting structural breaks in financial return
-series using contour integrals of the empirical characteristic function (ECF).
-The package is aimed at computational scientists who want a mathematically
-interpretable detector, but do not necessarily work in quantitative finance.
-Rather than only tracking changes in first and second moments, `cfad` monitors
-changes in the analytic structure of the data-generating law in the complex
-frequency domain.
+`cfad` is a Python package for detecting changes in the distributional shape of
+financial returns with empirical characteristic functions (ECFs). For each
+rolling window, the package evaluates the ECF on a real-frequency grid and
+compares it with the Gaussian characteristic function fitted to that window's
+sample mean and variance. The resulting normalized integrated squared distance
+is monitored with a two-sided Page-CUSUM to produce sequential alarms.
 
-The intuition is borrowed from oceanography: a subsurface vortex can remain
-invisible in local surface measurements but still be detected by circulation
-integrals over a closed loop. `cfad` translates this idea into time-series
-analysis. For each rolling window of returns, the package estimates the ECF and
-computes a rectangular contour integral in the complex $\xi$-plane. If the
-underlying characteristic function is entire, the contour integral should vanish
-up to numerical error. If singular structure (for example branch-cut behavior)
-is present, the score rises.
-
-The software contribution is a complete detection stack that combines
-Cython-accelerated rolling ECF estimation, contour-residue scoring, and
-sequential CUSUM alarming in a unified API. The same package also includes
+The package is designed for research workflows where changes in tails,
+skewness, or other higher-order distributional features may matter beyond
+changes in mean or variance. It includes batch and streaming detectors,
 parametric characteristic-function models (Gaussian, NIG, CGMY, and
-Lévy-stable), enabling structural interpretation through model comparison.
-Companion notebooks produce reproducible empirical outputs used in the paper,
-including concept-level separation, SPY event annotations, detection-delay
-distributions, ROC comparisons, and window-sensitivity analyses. Pure-Python
-fallbacks are provided so all functionality remains available even when C
-extensions cannot be compiled.
+Lévy-stable), ECF goodness-of-fit tools, walk-forward backtesting, bootstrap and
+sensitivity diagnostics, visualization utilities, benchmark scripts, and
+optional Cython acceleration for rolling ECF evaluation and CUSUM updates.
+
+A central design principle is that the statistical score has one definition
+regardless of whether compiled extensions are installed. Cython changes
+execution speed, not the scientific estimand.
 
 # Statement of Need
 
-Financial change-point workflows are well served by generic segmentation and
-CUSUM-style tools, but the dominant methods still operate on returns,
-volatility, or related moments. In practice this means that widely used
-packages such as `ruptures`, `changepoint`, and `strucchange` are optimized for
-distributional changes in observed time-domain summaries, not for the topology
-of characteristic functions. For jump-process modeling, this distinction
-matters: singular structures associated with heavy tails and discontinuities are
-first-order modeling objects, not edge cases [@cont2004].
+Financial change-point tools commonly monitor returns, volatility, regression
+parameters, or generic distributional summaries. Those approaches are often
+appropriate, but they do not directly expose how the full empirical
+characteristic function changes over time. ECF methods provide a natural way to
+compare distributions because they exist for every probability distribution and
+encode all distributional information under standard uniqueness results.
 
-Conversely, characteristic-function-focused software ecosystems (for example
-QuantLib-centered pricing workflows or Lévy-fitting utilities such as
-`py-levy`) primarily target calibration and pricing. They typically do not
-provide a direct anomaly score and sequential alarm layer for online monitoring.
-As a result, practitioners often combine multiple toolchains, with ad hoc glue
-code and inconsistent calibration assumptions between modeling and detection.
+`cfad` provides an end-to-end workflow that joins an ECF discrepancy statistic
+to sequential monitoring. The package is intended to complement rather than
+replace established change-point and goodness-of-fit methods. Its main software
+contribution is the integration of rolling ECF estimation, model comparison,
+sequential decision rules, diagnostics, and reproducible evaluation in one API.
 
-`cfad` addresses this gap by integrating residue-based structural scoring with
-Page-CUSUM sequential detection [@page1954] in one consistent API. It maps
-rolling windows to ECFs, computes contour-derived anomaly scores, calibrates
-in-control behavior, and emits alarms in a single pipeline. To the author's
-knowledge, this is the first open-source package that operationalizes this
-specific combination for financial time series. The package therefore fills both
-a scientific need (topology-aware detection) and an engineering need
-(reproducible, maintainable, end-to-end implementation).
+# Statistical Method
 
-# Mathematics
+Let $r_1,\ldots,r_n$ denote returns in one rolling window. The empirical
+characteristic function is
 
-Let $r_1, \ldots, r_T$ be a sequence of log-returns. The empirical
-characteristic function (ECF) at frequency $\xi \in \mathbb{R}$ is
+$$
+\widehat\varphi_n(\xi)
+=
+\frac{1}{n}\sum_{j=1}^{n}e^{i\xi r_j},
+\qquad \xi\in\mathbb R.
+$$
 
-$$\hat{\varphi}_n(\xi) = \frac{1}{n} \sum_{j=1}^n e^{i\xi r_j}.$$
+Within the same window, define
 
-For a rolling window of size $n$ ending at time $t$, `cfad` computes
-$\hat{\varphi}_n(\xi)$ at a uniform grid $\xi_1, \ldots, \xi_m$ using a
-Cython-accelerated O$(nm)$ inner loop. The anomaly score for that window is
+$$
+\widehat\mu_n = \frac1n\sum_{j=1}^n r_j,
+\qquad
+\widehat\sigma_n^2
+=\frac{1}{n-1}\sum_{j=1}^n(r_j-\widehat\mu_n)^2.
+$$
 
-$$S_t = \left| \oint_C \hat{\varphi}_n(\xi)\, d\xi \right|$$
+The fitted Gaussian characteristic function is
 
-where $C$ is a rectangular contour with corners $\xi_{\min} \pm i\eta$,
-$\xi_{\max} \pm i\eta$ in the complex $\xi$-plane. By the Residue Theorem:
+$$
+\varphi_G(\xi)
+=
+\exp\left(
+ i\widehat\mu_n\xi
+ -\frac12\widehat\sigma_n^2\xi^2
+\right).
+$$
 
-- **Entire CF** (Gaussian): $S_t \equiv 0$ for any contour $C$.
-- **Non-analytic CF** (NIG, CGMY, Lévy-stable): $S_t \neq 0$ when $C$
-  encloses a branch point or pole.
+CFAD's window score is the normalized real-frequency $L^2$ discrepancy
 
-For the Normal Inverse Gaussian family, analyticity holds only inside a strip
-of the complex plane:
+$$
+D_n
+=
+\left[
+\frac{1}{\xi_{\max}-\xi_{\min}}
+\int_{\xi_{\min}}^{\xi_{\max}}
+\left|
+\widehat\varphi_n(\xi)-\varphi_G(\xi)
+\right|^2d\xi
+\right]^{1/2}.
+$$
 
-$$\left\{\xi \in \mathbb{C} : |\operatorname{Im}\xi| < \alpha - |\beta| \right\}.$$
+Because the Gaussian reference is fitted separately in every window, changes in
+location and scale are absorbed by $\widehat\mu_n$ and
+$\widehat\sigma_n$. The remaining score is therefore primarily a measure of
+non-Gaussian distributional shape, including tail and skewness changes. This
+interpretation should be validated for each application by simulation and
+out-of-sample benchmarks rather than treated as a universal detector guarantee.
 
-This strip determines where contour paths can be interpreted as sampling the
-analytic regime of NIG and where branch structure may contribute to the
-integral. In practical terms, contour height controls structural sensitivity.
+## Why the empirical score is not a contour residue
 
-The key guarantee is Cauchy's theorem: if a function is holomorphic on and
-inside a closed contour, the contour integral is zero. Therefore, if the
-window-level characteristic function is entire in the relevant domain,
-$S_t = 0$ in the idealized limit. Under finite samples and discrete quadrature,
-scores are not exactly zero numerically, but they remain concentrated near an
-in-control baseline for analytic dynamics and increase when non-analytic
-features are present.
+For a finite sample,
 
-The method is related to the ECF goodness-of-fit literature. Epps-Pulley
-[@epps1983] uses ECF functionals for a single-sample test of normality; `cfad`
-extends this from one-window testing to a rolling sequential detector in which
-each window yields a structural score that feeds a monitoring process.
+$$
+\widehat\varphi_n(z)
+=
+\frac1n\sum_{j=1}^n e^{izr_j}
+$$
 
-Sequential detection is then performed by applying a two-sided Page-CUSUM
-[@page1954] to the score series $\{S_t\}$, with in-control parameters
-$\mu_0, \sigma_0$ estimated from a calm calibration period:
+is a finite sum of entire functions of $z\in\mathbb C$, hence is itself entire.
+Its exact integral around any closed contour is therefore zero by Cauchy's
+theorem. Consequently, a finite-sample ECF contour integral cannot identify
+branch cuts or poles of the population characteristic function.
 
-$$S_t^+ = \max\!\left(0,\; S_{t-1}^+ + \frac{S_t - \mu_0}{\sigma_0} - k\right), \qquad \text{alarm if } S_t^+ > h.$$
+Complex contour integration remains useful in `cfad.contour` for parametric
+functions that are explicitly evaluated at complex arguments, but it is not the
+empirical anomaly statistic. Parametric model comparisons are similarly treated
+as distributional-fit evidence rather than direct empirical singularity tests.
 
-An analogous recursion is used for negative excursions, producing a two-sided
-procedure robust to asymmetric deviations. This decomposition is central to the
-design: contour integration extracts topology-sensitive evidence, and CUSUM
-converts that evidence into a controlled sequential decision rule with explicit
-thresholding.
+# Sequential Monitoring
+
+Let $D_t$ denote the rolling score sequence and let $\mu_0,\sigma_0$ be
+estimated from a prespecified in-control calibration prefix. Standardized scores
+are
+
+$$
+z_t=\frac{D_t-\mu_0}{\sigma_0}.
+$$
+
+CFAD applies the two-sided Page-CUSUM [@page1954]
+
+$$
+S_t^+ = \max(0,S_{t-1}^+ + z_t-k),
+$$
+
+$$
+S_t^- = \max(0,S_{t-1}^- - z_t-k),
+$$
+
+and emits an alarm when either statistic exceeds a decision threshold $h$. Since
+$z_t$ is standardized, the reference value $k$ is dimensionless.
 
 # Implementation
 
-The package is structured in four layers:
+The package is organized into four main layers:
 
-1. **Cython extensions** (`cfad/_ext/`): three `.pyx` modules for rolling ECF
-   estimation, rectangular contour quadrature in the complex plane, and CUSUM
-   updates. Each uses `boundscheck=False`, `wraparound=False`, and
-   `cdivision=True`, with O3 optimisation. Pure-Python fallbacks are provided
-   for environments without a C compiler.
+1. **ECF estimation** (`cfad/empirical_cf.py`) with an optional Cython rolling
+   implementation.
+2. **Scoring and detection** (`cfad/contour.py`, `cfad/detection.py`) with a
+   single NumPy implementation of the Gaussian ECF distance and Python/Cython
+   implementations of the same CUSUM recursion.
+3. **Parametric models and diagnostics** (`cfad/models/`, `cfad/gof.py`) for
+   Gaussian, NIG, CGMY, and Lévy-stable comparison and goodness of fit.
+4. **Evaluation and operational utilities** (`cfad/backtest.py`,
+   `cfad/bootstrap.py`, `cfad/sensitivity.py`, `cfad/market.py`) for temporal
+   evaluation, uncertainty diagnostics, sensitivity analysis, and multi-asset
+   workflows.
 
-2. **Core engine** (`cfad/empirical_cf.py`, `cfad/contour.py`): thin wrappers
-   around the Cython hot paths with graceful fallback.
-
-3. **Parametric CF models** (`cfad/models/`): `GaussianCF` (entire, baseline),
-   `NIGCF` [@barndorff1977], `CGMYCF` [@carr2002], `LevyStableCF`. Each
-   implements `cf(xi)`, `log_cf(xi)`, and `fit(returns)` (ECF-based minimum
-   distance estimation via Nelder-Mead).
-
-4. **Detection API** (`cfad/api.py`): `detect(returns, ...)` and
-   `compare_models(returns)` for one-call usage.
-
-In addition, the repository includes benchmark scripts and reproducible
-notebooks for empirical validation. These workflows generate the paper outputs
-under `paper/figures/` from fixed seeds and explicit simulation settings,
-supporting end-to-end reproducibility from raw returns to final metrics.
+The repository also includes a Streamlit dashboard, Sphinx documentation,
+notebooks, and benchmark scripts.
 
 # Usage
 
 ```python
-import yfinance as yf
-from cfad import detect, compare_models
+import numpy as np
+from cfad import detect
 
-prices = yf.download("SPY", start="2019-01-01", end="2021-06-01")["Close"]
-returns = prices.pct_change().dropna()
+rng = np.random.default_rng(42)
+returns = np.concatenate([
+    rng.normal(0.0, 0.01, 300),
+    rng.standard_t(df=3.0, size=150) * 0.01 / np.sqrt(3.0),
+])
 
-report = detect(returns, window=60, h=4.0)
+report = detect(
+    returns,
+    window=60,
+    xi_range=(-10.0, 10.0),
+    calibration_frac=0.4,
+    k=0.5,
+    h=5.0,
+)
 print(report.summary())
-# CFAD Anomaly Report
-#   Windows evaluated : 588
-#   Alarms fired      : 3
-#   First alarm       : 2020-02-28
-
-result = compare_models(returns.values)
-print(result["winner"])   # → "nig"
 ```
 
-```python
-from cfad import compare_models
+# Validation Strategy
 
-result = compare_models(returns.values)
-print(result)  # {'gaussian': {...}, 'nig': {...}, 'winner': 'nig'}
-```
+A useful anomaly detector must be evaluated on more than one annotated market
+series. The repository's benchmark contract therefore emphasizes controlled
+experiments with explicit null and alternative data-generating processes. Core
+metrics include false-positive rate, power, detection delay, and sensitivity to
+window length and real-frequency cutoff. Comparisons against simpler baselines
+are required to establish whether ECF-based shape information adds useful signal.
 
-# Performance Note
-
-`cfad` keeps the same algorithmic structure in Python and Cython, but moves the
-hot path to compiled loops. In pure Python, rolling ECF evaluation scales as
-O$(T \cdot n \cdot m)$ with interpreter overhead at each sample/update step.
-The Cython extensions retain O$(T \cdot n \cdot m)$ complexity while executing
-as tight C loops, eliminating per-sample Python overhead and reducing wall-clock
-runtime in long-series and Monte Carlo settings. The package also provides
-feature-equivalent pure-Python fallbacks for environments without a working C
-compiler, so portability and reproducibility are preserved.
+Any figures produced under the earlier empirical-contour-residue definition are
+provisional and must be regenerated before being used as evidence for the
+corrected method.
 
 # Acknowledgements
 
-The author thanks the students of TSIW at ESMAD-IPP whose questions about
-market microstructure motivated the pedagogical framing of this work.
+The project benefited from questions raised in teaching and research discussions
+about characteristic functions, distributional change, and financial time
+series.
 
 # References
 
-- [@cont2004]
 - [@page1954]
 - [@epps1983]
+- [@cont2004]
 - [@barndorff1977]
 - [@carr2002]
-- [@inclan1994]
-- [@madan1998]
-- [@kuchler2013]

@@ -2,53 +2,50 @@
 
 from __future__ import annotations
 
+from pathlib import Path
+from typing import Optional
+
+import matplotlib.pyplot as plt
+import numpy as np
+import pandas as pd
+from numpy.typing import NDArray
+
+from cfad.detection import AnomalyReport
+
 
 def plot_scores(
-    report: "AnomalyReport",
-    returns: "Optional[NDArray[np.float64]]" = None,
-    figsize: tuple = (12, 6),
-    ax: "Optional[object]" = None,
-) -> "plt.Figure":
-    """
-    Two-panel diagnostic plot.
-
-    Top panel (if `returns` is provided):
-      - Line plot of the return series
-      - Vertical red dashed lines at each alarm date / index
-
-    Bottom panel:
-      - Line plot of report.scores (raw residue scores)
-      - Line plot of report.cusum_pos in orange
-      - Horizontal dashed line at report.threshold (CUSUM alarm level)
-      - Vertical red dashed lines at each alarm index
-
-    Use report.dates for x-axis labels if available, otherwise integer indices.
-    Title: "CFAD Anomaly Score — RollingDetector"
-    Save nothing; return the Figure object.
-    """
-    import numpy as np
-    import matplotlib.pyplot as plt
-
+    report: AnomalyReport,
+    returns: Optional[NDArray[np.float64]] = None,
+    figsize: tuple[float, float] = (12, 6),
+    ax: Optional[object] = None,
+) -> plt.Figure:
+    """Plot returns, ECF-shape scores, CUSUM state, and alarm locations."""
     scores = np.asarray(report.scores, dtype=np.float64)
     cusum_pos = np.asarray(report.cusum_pos, dtype=np.float64)
     alarm_idx = np.asarray(report.alarm_indices, dtype=np.int64)
     win_end_idx = np.asarray(report.window_end_indices, dtype=np.int64)
     n_scores = int(scores.shape[0])
-
     valid_alarm_idx = alarm_idx[(alarm_idx >= 0) & (alarm_idx < n_scores)]
 
-    if report.dates is not None and len(report.dates) > 0 and win_end_idx.size >= n_scores:
-        score_date_idx = np.clip(win_end_idx[:n_scores] - 1, 0, len(report.dates) - 1)
+    if (
+        report.dates is not None
+        and len(report.dates) > 0
+        and win_end_idx.size >= n_scores
+    ):
+        score_date_idx = np.clip(
+            win_end_idx[:n_scores] - 1,
+            0,
+            len(report.dates) - 1,
+        )
         x_scores = report.dates[score_date_idx]
         alarm_x_bottom = x_scores[valid_alarm_idx]
     else:
         x_scores = np.arange(n_scores)
         alarm_x_bottom = valid_alarm_idx
 
-    if returns is not None:
-        returns_arr = np.asarray(returns, dtype=np.float64)
-    else:
-        returns_arr = None
+    returns_arr = (
+        np.asarray(returns, dtype=np.float64) if returns is not None else None
+    )
 
     if ax is None:
         if returns_arr is None:
@@ -86,7 +83,11 @@ def plot_scores(
 
         if win_end_idx.size > 0:
             in_range_alarms = valid_alarm_idx[valid_alarm_idx < win_end_idx.size]
-            alarm_return_idx = np.clip(win_end_idx[in_range_alarms] - 1, 0, n_returns - 1)
+            alarm_return_idx = np.clip(
+                win_end_idx[in_range_alarms] - 1,
+                0,
+                n_returns - 1,
+            )
             if report.dates is not None and len(report.dates) >= n_returns:
                 alarm_x_top = report.dates[alarm_return_idx]
             else:
@@ -94,30 +95,54 @@ def plot_scores(
         else:
             alarm_x_top = np.array([], dtype=np.int64)
 
-        ax_top.plot(x_returns, returns_arr, color="tab:blue", linewidth=1.0, label="Returns")
+        ax_top.plot(
+            x_returns,
+            returns_arr,
+            linewidth=1.0,
+            label="Returns",
+        )
         for x_alarm in alarm_x_top:
-            ax_top.axvline(x_alarm, color="red", linestyle="--", linewidth=1.0, alpha=0.7)
+            ax_top.axvline(
+                x_alarm,
+                linestyle="--",
+                linewidth=1.0,
+                alpha=0.7,
+            )
         ax_top.set_ylabel("Returns")
         ax_top.legend(loc="upper left")
         ax_top.grid(alpha=0.25)
 
-    ax_bottom.plot(x_scores, scores, color="tab:blue", linewidth=1.2, label="Residue Score")
-    ax_bottom.plot(x_scores, cusum_pos, color="orange", linewidth=1.2, label="CUSUM+")
+    ax_bottom.plot(
+        x_scores,
+        scores,
+        linewidth=1.2,
+        label="ECF-shape score",
+    )
+    ax_bottom.plot(
+        x_scores,
+        cusum_pos,
+        linewidth=1.2,
+        label="CUSUM+",
+    )
     ax_bottom.axhline(
         float(report.threshold),
-        color="black",
         linestyle="--",
         linewidth=1.0,
-        label="Threshold",
+        label="CUSUM threshold",
     )
     for x_alarm in alarm_x_bottom:
-        ax_bottom.axvline(x_alarm, color="red", linestyle="--", linewidth=1.0, alpha=0.7)
-    ax_bottom.set_ylabel("Score")
+        ax_bottom.axvline(
+            x_alarm,
+            linestyle="--",
+            linewidth=1.0,
+            alpha=0.7,
+        )
+    ax_bottom.set_ylabel("Score / CUSUM")
     ax_bottom.set_xlabel("Date" if report.dates is not None else "Index")
     ax_bottom.legend(loc="upper left")
     ax_bottom.grid(alpha=0.25)
 
-    fig.suptitle("CFAD Anomaly Score — RollingDetector")
+    fig.suptitle("CFAD ECF-shape monitoring")
     fig.tight_layout()
     return fig
 
@@ -126,28 +151,16 @@ def load_spy_sample(
     start: str = "2018-01-01",
     end: str = "2023-01-01",
     cache_path: str = "data/spy_sample.csv",
-) -> "pd.Series":
-    """
-    Load SPY log-returns.
-
-    If `cache_path` exists, load from CSV (column "log_return", index "Date").
-    Otherwise download via yfinance, compute log-returns as
-      log_return = log(Close_t / Close_{t-1}),
-    save to cache_path, and return the Series.
-
-    Returns pd.Series with DatetimeIndex, name="log_return".
-    """
-    from pathlib import Path
-    import numpy as np
-    import pandas as pd
-
+) -> pd.Series:
+    """Load cached or downloaded SPY log returns."""
     resolved_cache_path = Path(cache_path)
     if not resolved_cache_path.is_absolute():
         resolved_cache_path = Path(__file__).resolve().parents[1] / resolved_cache_path
 
-    # Backward-compatible cache support for legacy fixtures and examples.
     if cache_path == "data/spy_sample.csv":
-        legacy_path = Path(__file__).resolve().parents[1] / "data" / "spy_2018_2022.csv"
+        legacy_path = (
+            Path(__file__).resolve().parents[1] / "data" / "spy_2018_2022.csv"
+        )
         if legacy_path.exists():
             resolved_cache_path = legacy_path
 
@@ -168,10 +181,16 @@ def load_spy_sample(
             import yfinance as yf
         except ImportError as exc:
             raise ImportError(
-                "yfinance is required to download SPY data when cache is missing."
+                "yfinance is required to download SPY data when cache is missing"
             ) from exc
 
-        data = yf.download("SPY", start=start, end=end, progress=False, auto_adjust=False)
+        data = yf.download(
+            "SPY",
+            start=start,
+            end=end,
+            progress=False,
+            auto_adjust=False,
+        )
         if data.empty:
             raise RuntimeError("SPY download returned no data")
 
@@ -196,34 +215,9 @@ def simulate_levy_returns(
     beta: float = 0.0,
     scale: float = 0.01,
     mu: float = 0.0,
-    seed: "Optional[int]" = None,
-) -> "NDArray[np.float64]":
-    """
-    Simulate n observations from a Lévy-stable distribution.
-
-    Uses the Chambers-Mallows-Stuck method via scipy.stats.levy_stable.rvs.
-    When alpha=2.0 this reduces to Gaussian(mu, sqrt(2)*scale).
-
-    Parameters
-    ----------
-    n : int
-        Sample size.
-    alpha : float
-        Stability index (0 < alpha <= 2).
-    beta : float
-        Skewness (-1 <= beta <= 1).
-    scale : float
-        Scale parameter (analogous to std for Gaussian).
-    mu : float
-        Location.
-    seed : int | None
-        Random seed.
-
-    Returns
-    -------
-    returns : float ndarray of shape (n,)
-    """
-    import numpy as np
+    seed: Optional[int] = None,
+) -> NDArray[np.float64]:
+    """Simulate returns from a Lévy-stable distribution."""
     from scipy.stats import levy_stable
 
     if n <= 0:

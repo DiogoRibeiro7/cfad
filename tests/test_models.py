@@ -3,6 +3,7 @@
 import numpy as np
 import pytest
 
+from cfad.contour import contour_integral
 from cfad.models.cgmy import CGMYCF
 from cfad.models.gaussian import GaussianCF
 from cfad.models.levy_stable import LevyStableCF
@@ -40,18 +41,16 @@ def test_nig_cf_normalization():
 
 
 def test_gaussian_entire_contour():
-    """Entire function: contour integral should be near zero."""
-    from cfad.contour import contour_integral
-
+    """Entire Gaussian CF integrates to zero around a closed contour."""
     g = GaussianCF(mu=0.0, sigma=0.02)
-    re, im = contour_integral(
+    value = contour_integral(
         lambda z: np.exp(1j * g.mu * z - 0.5 * g.sigma**2 * z**2),
         xi_min=-5,
         xi_max=5,
         height=0.3,
-        n_pts=512,
+        n_pts=64,
     )
-    assert abs(re) < 1e-6 and abs(im) < 1e-6, f"Gaussian residue non-zero: {re}, {im}"
+    assert abs(value) < 1e-10
 
 
 def test_cgmy_cf_normalization():
@@ -72,9 +71,9 @@ def test_cgmy_fit():
 
 
 def test_levy_stable_cf_normalization():
-    l = LevyStableCF(alpha=1.7, beta=0.0, c=0.01, mu=0.0)
+    model = LevyStableCF(alpha=1.7, beta=0.0, c=0.01, mu=0.0)
     xi = np.array([0.0])
-    assert abs(l.cf(xi)[0] - 1.0) < 1e-12
+    assert abs(model.cf(xi)[0] - 1.0) < 1e-12
 
 
 def test_levy_stable_is_not_analytic():
@@ -84,11 +83,11 @@ def test_levy_stable_is_not_analytic():
 def test_levy_stable_fit():
     rng = np.random.default_rng(123)
     data = rng.standard_t(4, size=1500) * 0.01
-    l = LevyStableCF()
-    l.fit(data)
-    assert 0 < l.alpha <= 2
-    assert -1 <= l.beta <= 1
-    assert l.c > 0
+    model = LevyStableCF()
+    model.fit(data)
+    assert 0 < model.alpha <= 2
+    assert -1 <= model.beta <= 1
+    assert model.c > 0
 
 
 def test_cgmy_invalid_Y():
@@ -101,27 +100,26 @@ def test_normalise_scores_methods():
     z = normalise_scores(scores, method="zscore")
     assert abs(np.mean(z)) < 1e-12
     assert abs(np.std(z, ddof=1) - 1.0) < 1e-12
-    m = normalise_scores(scores, method="minmax")
-    assert np.allclose(m, [0.0, 1.0 / 3.0, 2.0 / 3.0, 1.0])
-    r = normalise_scores(scores, method="mad")
-    assert np.allclose(r, [-1.5, -0.5, 0.5, 1.5])
+    scaled = normalise_scores(scores, method="minmax")
+    assert np.allclose(scaled, [0.0, 1.0 / 3.0, 2.0 / 3.0, 1.0])
+    robust = normalise_scores(scores, method="mad")
+    assert np.allclose(robust, [-1.5, -0.5, 0.5, 1.5])
 
 
 def test_threshold_by_fpr():
     scores = np.arange(100, dtype=np.float64)
-    thr = threshold_by_fpr(scores, fpr=0.05)
-    assert thr == np.quantile(scores, 0.95, method="linear")
+    threshold = threshold_by_fpr(scores, fpr=0.05)
+    assert threshold == np.quantile(scores, 0.95, method="linear")
 
 
 def test_rolling_pvalue_normal():
     scores = np.concatenate([np.zeros(10), np.ones(10)])
-    pvals = rolling_pvalue(scores, window=5, dist="normal")
-    assert np.isnan(pvals[:5]).all()
-    assert np.all((pvals[5:] >= 0.0) & (pvals[5:] <= 1.0))
+    pvalues = rolling_pvalue(scores, window=5, dist="normal")
+    assert np.isnan(pvalues[:5]).all()
+    assert np.all((pvalues[5:] >= 0.0) & (pvalues[5:] <= 1.0))
 
 
 def test_simulate_levy_returns_shape():
     draws = simulate_levy_returns(200, alpha=1.7, beta=0.5, scale=0.01)
     assert draws.shape == (200,)
-    assert draws.dtype == np.float64
     assert draws.dtype == np.float64

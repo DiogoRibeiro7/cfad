@@ -13,15 +13,20 @@ from cfad.models.cgmy import CGMYCF
 
 @given(
     n=st.integers(min_value=50, max_value=500),
-    sigma=st.floats(min_value=0.001, max_value=0.1, allow_nan=False, allow_infinity=False),
+    sigma=st.floats(
+        min_value=0.001,
+        max_value=0.1,
+        allow_nan=False,
+        allow_infinity=False,
+    ),
 )
 @settings(max_examples=50)
 def test_ecf_normalization_always_holds(n: int, sigma: float):
     """phi_n(0) == 1 for any return series."""
     rng = np.random.default_rng(0)
     returns = rng.normal(0, sigma, n)
-    val = ecf_at(returns, np.array([0.0]))[0]
-    assert abs(val - 1.0) < 1e-10
+    value = ecf_at(returns, np.array([0.0]))[0]
+    assert abs(value - 1.0) < 1e-10
 
 
 @given(
@@ -30,30 +35,34 @@ def test_ecf_normalization_always_holds(n: int, sigma: float):
 )
 @settings(max_examples=30)
 def test_rolling_ecf_window_count(n: int, window: int):
-    """Number of windows matches formula (T - window) // step + 1."""
+    """Number of windows matches (T - window) // step + 1."""
     assume(window < n)
     rng = np.random.default_rng(1)
     returns = rng.normal(0, 0.01, n)
     xi = np.linspace(-3, 3, 16)
     ecf_mat, _ = rolling_ecf(returns, xi, window=window, step=1)
-    expected = (n - window) // 1 + 1
-    assert ecf_mat.shape[0] == expected
+    assert ecf_mat.shape[0] == n - window + 1
 
 
 @given(
-    sigma=st.floats(min_value=0.001, max_value=0.05, allow_nan=False, allow_infinity=False)
+    sigma=st.floats(
+        min_value=0.001,
+        max_value=0.05,
+        allow_nan=False,
+        allow_infinity=False,
+    )
 )
 @settings(max_examples=20)
 def test_gaussian_cf_contour_is_zero(sigma: float):
-    """Gaussian CF contour integral is zero for any sigma."""
-    re, im = contour_integral(
-        lambda z: np.exp(1j * 0.0 * z - 0.5 * sigma**2 * z**2),
+    """Gaussian CF contour integral is zero for any positive sigma."""
+    value = contour_integral(
+        lambda z: np.exp(-0.5 * sigma**2 * z**2),
         xi_min=-5,
         xi_max=5,
         height=0.3,
-        n_pts=256,
+        n_pts=32,
     )
-    assert abs(re) < 1e-4 and abs(im) < 1e-3
+    assert abs(value) < 1e-10
 
 
 @given(
@@ -63,6 +72,6 @@ def test_gaussian_cf_contour_is_zero(sigma: float):
 @settings(max_examples=20)
 def test_cgmy_normalization(C: float, Y: float):
     """phi(0) == 1 for any valid CGMY parameters."""
-    m = CGMYCF(C=C, G=5.0, M=10.0, Y=Y)
-    val = m.cf(np.array([0.0]))[0]
-    assert abs(val - 1.0) < 1e-10
+    model = CGMYCF(C=C, G=5.0, M=10.0, Y=Y)
+    value = model.cf(np.array([0.0]))[0]
+    assert abs(value - 1.0) < 1e-10

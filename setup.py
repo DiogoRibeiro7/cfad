@@ -1,44 +1,40 @@
-"""
-Build script for Cython C extensions.
-Run: pip install -e . --no-build-isolation
-Or:  python setup.py build_ext --inplace
-"""
+"""Build configuration for CFAD's optional Cython extensions."""
+
+from __future__ import annotations
+
 import platform
 
-from setuptools import setup, Extension
-import numpy as np
 from Cython.Build import cythonize
+import numpy as np
+from setuptools import Extension, setup
 
 NUMPY_INCLUDE = np.get_include()
-if platform.system() == "Windows":
-    extra_compile_args = ["/O2"]
-else:
-    extra_compile_args = ["-O3", "-march=native", "-ffast-math"]
 
-extensions = [
+if platform.system() == "Windows":
+    EXTRA_COMPILE_ARGS = ["/O2"]
+else:
+    # Avoid -march=native in distributable wheels: binaries must remain portable
+    # across compatible CPUs rather than target the build host specifically.
+    EXTRA_COMPILE_ARGS = ["-O3"]
+
+EXTENSIONS = [
     Extension(
         "cfad._ext.rolling_ecf",
         sources=["cfad/_ext/rolling_ecf.pyx"],
         include_dirs=[NUMPY_INCLUDE],
-        extra_compile_args=extra_compile_args,
-    ),
-    Extension(
-        "cfad._ext.contour_quad",
-        sources=["cfad/_ext/contour_quad.pyx"],
-        include_dirs=[NUMPY_INCLUDE],
-        extra_compile_args=extra_compile_args,
+        extra_compile_args=EXTRA_COMPILE_ARGS,
     ),
     Extension(
         "cfad._ext.cusum",
         sources=["cfad/_ext/cusum.pyx"],
         include_dirs=[NUMPY_INCLUDE],
-        extra_compile_args=extra_compile_args,
+        extra_compile_args=EXTRA_COMPILE_ARGS,
     ),
 ]
 
 setup(
     ext_modules=cythonize(
-        extensions,
+        EXTENSIONS,
         compiler_directives={
             "language_level": "3",
             "boundscheck": False,
@@ -46,6 +42,6 @@ setup(
             "cdivision": True,
             "nonecheck": False,
         },
-        annotate=True,
+        annotate=False,
     )
 )

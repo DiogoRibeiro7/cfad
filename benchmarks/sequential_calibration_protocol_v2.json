@@ -1,0 +1,80 @@
+{
+  "protocol_version": "2.0",
+  "status": "frozen-before-v2-results",
+  "purpose": "Re-evaluate the corrected ECF-shape detector with series-level sequential false-alarm calibration that respects overlapping rolling windows and the full monitoring horizon.",
+  "relationship_to_v1": {
+    "v1_status": "failed-publication-screen",
+    "v1_failure": "The v1 threshold grid did not attain the target series-level false-alarm rate; CFAD Gaussian-null false alarms were 0.885 at the maximum tested h=12.",
+    "preservation_rule": "v1 remains a separate failed experiment and is not reinterpreted as successful after v2.",
+    "parameter_rule": "Detector and scenario parameters are retained from v1; only the sequential calibration/evaluation contract changes."
+  },
+  "series": {
+    "n_observations": 600,
+    "change_point": 360,
+    "post_change_horizon": 120,
+    "base_sigma": 0.01
+  },
+  "detector": {
+    "window": 60,
+    "step": 5,
+    "xi_max": 10.0,
+    "n_xi": 64,
+    "calibration_frac": 0.3,
+    "cusum_k": 0.5
+  },
+  "methods": [
+    "cfad_ecf_shape",
+    "rolling_mean",
+    "rolling_log_variance",
+    "rolling_excess_kurtosis"
+  ],
+  "scenarios": {
+    "null_gaussian": "Stationary N(0, sigma^2). Primary threshold-calibration law and primary null evaluation.",
+    "null_student_t": "Stationary Student-t(df=5), rescaled to sigma. External null validation for stable non-Gaussian shape.",
+    "shape_student_t": "Gaussian before the change; Student-t(df=4), rescaled to the same standard deviation, after the change.",
+    "shape_skew": "Gaussian before the change; standardized skew-normal(shape=8) after the change, preserving post-segment sample mean 0 and sample standard deviation sigma.",
+    "mean_shift": "Gaussian throughout with post-change mean +1.5 sigma and unchanged variance.",
+    "variance_shift": "Gaussian throughout with post-change standard deviation 1.75 sigma and unchanged mean."
+  },
+  "monte_carlo": {
+    "threshold_calibration_replicates": 1000,
+    "evaluation_replicates": 500,
+    "threshold_seed_base": 401000,
+    "evaluation_seed_base": 601000,
+    "target_series_false_alarm_rate": 0.05,
+    "threshold_quantile": 0.95,
+    "seed_rule": "All v2 calibration and evaluation seeds are disjoint from v1 and from one another."
+  },
+  "sequential_calibration": {
+    "primary_estimand": "P(at least one alarm during the monitored post-calibration horizon under the stationary Gaussian null)",
+    "calibration_statistic": "For each null replicate and method, standardize the rolling statistic using only its initial calibration block; then start a fresh two-sided Page-CUSUM at zero after that block and record the maximum of max(S_plus, S_minus) over the complete remaining monitoring horizon without alarm resets.",
+    "threshold_rule": "Set the method-specific decision threshold h to the empirical 0.95 quantile of the replicate-level maximum path statistic using NumPy quantile method='higher'.",
+    "attainment_gate": "Before alternative-scenario evaluation, independently verify on fresh Gaussian-null evaluation seeds that the Wilson 95% confidence interval for series-level false alarms contains 0.05 and that the point estimate is <= 0.10. If this gate fails, alternative-scenario results are still saved for transparency but the publication screen automatically fails.",
+    "state_rule": "The calibration score block estimates mu0 and sigma0 only. It does not update the CUSUM state. Monitoring begins immediately after the calibration score block with S_plus=S_minus=0.",
+    "overlap_rule": "Primary calibration retains window=60 and step=5, so the null simulation includes the same strong overlap dependence as the detector evaluation.",
+    "distribution_rule": "Thresholds are calibrated only on the prospectively specified Gaussian null. Student-t(df=5) is a separate robustness null and is not used to tune h."
+  },
+  "evaluation": {
+    "null_metric": "Series-level probability of at least one alarm during the monitored post-calibration horizon.",
+    "first_alarm_rule": "For changed-series scenarios, classify the first alarm after calibration. A first alarm before the known change is a false-alarm replicate and cannot later count as a successful detection.",
+    "pre_change_metric": "Probability that the first post-calibration alarm occurs before the known change point.",
+    "power_metric": "Probability that the first post-calibration alarm occurs from the change point through change_point + post_change_horizon inclusive.",
+    "delay_metric": "Observation delay of that first alarm from the change point, conditional on successful detection.",
+    "intervals": "Wilson 95% confidence intervals for rates; median and interquartile range for conditional delay."
+  },
+  "diagnostics": {
+    "non_overlapping_sensitivity": "Repeat null calibration/evaluation with step=60 as a diagnostic only; it cannot replace or tune the primary overlapping-window result.",
+    "threshold_reporting": "Save the full distribution of replicate maximum path statistics, selected method thresholds, independent calibration-check rates, and whether each threshold is finite and positive."
+  },
+  "publication_screen": {
+    "note": "Prospectively fixed v2 criteria. Passing requires false-alarm control first; power cannot compensate for a failed null-control gate.",
+    "gaussian_null_target": 0.05,
+    "max_null_false_alarm_rate_each": 0.10,
+    "min_power_each_shape_alternative": 0.80,
+    "max_median_delay_shape_student_t": 60,
+    "max_median_delay_shape_skew": 90,
+    "min_average_power_advantage_over_best_moment_baseline": 0.10,
+    "kurtosis_noninferiority_power_margin": 0.05,
+    "kurtosis_noninferiority_delay_margin_observations": 15
+  }
+}

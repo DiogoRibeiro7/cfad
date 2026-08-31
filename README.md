@@ -1,136 +1,172 @@
 # cfad — Characteristic Function Anomaly Detector
 
-[![PyPI version](https://badge.fury.io/py/cfad.svg)](https://pypi.org/project/cfad/)
 [![License: MIT](https://img.shields.io/badge/License-MIT-yellow.svg)](LICENSE)
-[![Tests](https://github.com/diogoribeiro7/cfad/actions/workflows/ci.yml/badge.svg)](https://github.com/diogoribeiro7/cfad/actions)
-[![DOI](https://joss.theoj.org/papers/placeholder/badge.svg)](paper/paper.md)
+[![CI](https://github.com/DiogoRibeiro7/cfad/actions/workflows/ci.yml/badge.svg?branch=develop)](https://github.com/DiogoRibeiro7/cfad/actions/workflows/ci.yml)
 
-> *"If your equations enforce a smooth surface, you haven't proven the vortex is missing — you've made it impossible to exist."*
+**cfad** is a research-oriented Python package for detecting changes in the
+**distributional shape** of financial returns with empirical characteristic
+functions (ECFs) and sequential CUSUM monitoring.
 
-**cfad** detects structural breaks in financial time series by measuring the
-**residue of the empirical characteristic function (ECF)** along a contour
-in the complex frequency plane.
+For each rolling window, CFAD compares the empirical characteristic function
+with the Gaussian characteristic function fitted to that window's sample mean
+and variance. The normalized real-frequency discrepancy is the anomaly score:
 
-The key idea: under diffusive (Gaussian) dynamics, the characteristic function
-is *entire* — analytic everywhere — so any closed contour integral returns
-exactly zero (Cauchy's theorem). Heavy-tailed and jump processes (NIG, CGMY,
-Lévy-stable) introduce *branch cuts* and *poles* — non-analytic structure that
-makes the contour integral non-zero. This non-zero value is the anomaly score.
+$$
+D_t =
+\left[
+\frac{1}{\xi_{\max}-\xi_{\min}}
+\int_{\xi_{\min}}^{\xi_{\max}}
+\left|
+\widehat\varphi_t(\xi)
+-
+\varphi_{\mathcal N(\widehat\mu_t,\widehat\sigma_t^2)}(\xi)
+\right|^2
+\,d\xi
+\right]^{1/2}.
+$$
+
+Because location and scale are fitted within each window, the score is aimed at
+higher-order shape changes such as tail and skewness changes. A two-sided
+Page-CUSUM then converts the score sequence into sequential alarms.
+
+> **Scientific scope.** The finite-sample ECF
+> $\widehat\varphi_n(z)=n^{-1}\sum_j e^{izx_j}$ is a finite sum of entire
+> functions and is itself entire. Therefore its exact closed-contour integral is
+> zero. CFAD does **not** infer population-CF branch cuts or poles from an
+> empirical contour residue. Complex contour integration remains available as a
+> diagnostic helper for parametric characteristic functions evaluated at complex
+> arguments, but it is not the empirical anomaly statistic.
 
 ---
 
+## Status
+
+The repository is currently a **research/development project**. The codebase
+contains release scaffolding, documentation, benchmarks, notebooks, and a draft
+software paper, but this README does not claim a PyPI or JOSS release unless a
+verifiable release exists.
+
 ## Installation
 
-```bash
-# Standard (pure Python, no C extensions)
-pip install cfad
+From the development branch:
 
-# With Cython C extensions (20-50× faster on large windows)
-pip install cfad[speed]
-# or from source:
-git clone https://github.com/diogoribeiro7/cfad
+```bash
+git clone https://github.com/DiogoRibeiro7/cfad
 cd cfad
-pip install -e . --no-build-isolation
+git switch develop
+python -m pip install -e ".[dev]" --no-build-isolation
 ```
+
+The package includes optional Cython acceleration for rolling ECF evaluation and
+CUSUM updates. The statistical score itself is implemented once in NumPy, so
+installing the extensions changes performance rather than the definition of the
+statistic.
 
 ## Quick start
 
 ```python
-import yfinance as yf
+import numpy as np
 from cfad import detect
 
-prices = yf.download("SPY", start="2018-01-01", end="2022-01-01")["Close"]
-returns = prices.pct_change().dropna()
+rng = np.random.default_rng(42)
+returns = np.concatenate(
+    [
+        rng.normal(0.0, 0.01, 300),
+        rng.standard_t(df=3.0, size=150) * 0.01 / np.sqrt(3.0),
+    ]
+)
 
-report = detect(returns, window=60, h=4.0)
+report = detect(
+    returns,
+    window=60,
+    xi_range=(-10.0, 10.0),
+    step=1,
+    calibration_frac=0.4,
+    k=0.5,
+    h=5.0,
+)
 print(report.summary())
-# → CFAD Anomaly Report
-# →   Windows evaluated : 952
-# →   Alarms fired      : 3
-# →   First alarm       : 2020-02-28
-
-# Compare structural models
-from cfad import compare_models
-result = compare_models(returns.values)
-print(result["winner"])  # → "nig" (non-analytic wins → structure present)
 ```
 
-## How it works
+For market data, fetch the series explicitly with the provider of your choice,
+then pass returns to `detect`. Keeping data acquisition outside the core example
+makes the detector reproducible without relying on network access.
 
+## Detection pipeline
+
+```text
+returns
+  │
+  ├─ rolling ECF on a real-frequency grid
+  │
+  ├─ fitted Gaussian CF in each window
+  │
+  ├─ normalized ECF L2 shape distance D_t
+  │
+  ├─ calibration of score mean/std on an in-control prefix
+  │
+  └─ two-sided Page-CUSUM → alarms
 ```
-Returns r_1..r_T
-       │
-       ▼ rolling_ecf()              [Cython: O(n·m)]
-  φ̂_n(ξ) for each window
-       │
-       ▼ ecf_residue_scores()       [Cython: complex quadrature]
-  Residue magnitude score s_t
-       │
-       ▼ cusum()                    [Cython: sequential]
-  S_t (CUSUM statistic)
-       │
-       ▼ threshold h
-  AnomalyReport (alarms, dates)
-```
 
-The anomaly score is the magnitude of:
+## Parametric CF models
 
-$$I = \frac{1}{2\pi i} \oint_C \hat{\varphi}_n(\xi)\, d\xi$$
+CFAD also implements characteristic-function models for descriptive model
+comparison and goodness-of-fit work:
 
-Under the Gaussian null: $I \equiv 0$.
-Under non-analytic alternatives: $I \neq 0 \Rightarrow$ structural break.
+| Model | Main use |
+|---|---|
+| `GaussianCF` | location/scale baseline |
+| `NIGCF` | semi-heavy tails and skewness |
+| `CGMYCF` | jump/tail-shape modelling |
+| `LevyStableCF` | power-law tail modelling |
 
-## CF model families
-
-| Model | `is_analytic` | CF structure | Captures |
-|---|---|---|---|
-| `GaussianCF` | `True` | Entire | Drift + diffusion |
-| `NIGCF` | `False` | Branch cut at $i(\alpha-|\beta|)$ | Semi-heavy tails, skew |
-| `CGMYCF` | `False` | Branch cut | Jump intensity + tail index |
-| `LevyStableCF` | `False` | Branch cut | Power-law tails ($\alpha < 2$) |
+`compare_models()` compares fitted models by real-frequency ECF discrepancy and
+AIC. A better-fitting non-Gaussian model is evidence of distributional fit, not
+a direct empirical test for complex singularities.
 
 ## Utilities
 
-`cfad` also provides convenience tools for model comparison and sample generation:
+The repository includes:
 
-- `load_spy_sample()` — load or cache SPY daily returns for 2018–2022.
-- `simulate_levy_returns(n, alpha, beta, scale)` — generate synthetic Lévy-stable returns.
-- `normalise_scores(...)`, `rolling_pvalue(...)`, `threshold_by_fpr(...)` — score normalisation and thresholding utilities.
+- `rolling_gof`, `cf_distance`, and `epps_pulley_test` for ECF goodness of fit;
+- `WalkForwardBacktest` for temporal evaluation;
+- bootstrap and score-stability diagnostics;
+- `window_sensitivity`, `frequency_sensitivity`, and threshold sensitivity;
+- multivariate and market-oriented helpers;
+- a Streamlit dashboard under `apps/`;
+- reproducible notebooks and benchmark scripts.
 
-## Notebooks
+## Reproducibility
 
-The repository includes example notebooks demonstrating the package pipeline and scientific motivation:
+The main scientific validation target is not "does an alarm fire on one famous
+market event?" but how the detector behaves under controlled null and
+alternative data-generating processes. The benchmark layer should report, at a
+minimum:
 
-- `notebooks/01_concept_illustration.ipynb`
-- `notebooks/02_cf_families.ipynb`
-- `notebooks/03_contour_detection.ipynb`
-- `notebooks/04_empirical_validation.ipynb`
+- false-positive rate under an explicit in-control distribution;
+- power under prespecified shape changes;
+- detection delay;
+- sensitivity to window length and frequency cutoff;
+- comparison against simpler baselines.
 
-## Paper
+Existing figures and benchmark artifacts should be treated as provisional until
+they are regenerated from the corrected score definition.
 
-This package accompanies the manuscript:
+## Documentation and paper
 
-> Ribeiro, D. (2025). *Residues as detectors: contour integral anomaly
-> scoring for financial time series*. Submitted to Journal of Open Source
-> Software (JOSS).
+- Sphinx sources: [`docs/source/`](docs/source/)
+- Draft software paper: [`paper/paper.md`](paper/paper.md)
+- Reproducible notebooks: [`notebooks/`](notebooks/)
+- Benchmarks: [`benchmarks/`](benchmarks/)
 
-## Citation
-
-```bibtex
-@article{ribeiro2025cfad,
-  author  = {Ribeiro, Diogo},
-  title   = {cfad: Characteristic Function Anomaly Detector},
-  journal = {Journal of Open Source Software},
-  year    = {2025},
-  doi     = {10.xxxx/joss.xxxxx}
-}
-```
+The manuscript is a draft companion to the software. Citation metadata should
+only advertise a journal DOI after an actual accepted/published record exists.
 
 ## Author
 
-**Diogo Ribeiro** — ESMAD, Instituto Politécnico do Porto  
-ORCID: [0009-0001-2022-7072](https://orcid.org/0009-0001-2022-7072)  
-Email: dfr@esmad.ipp.pt
+**Diogo Ribeiro**  
+Faculty of Media Arts and Design, Technical University of Porto  
+ORCID: [0009-0001-2022-7072](https://orcid.org/0009-0001-2022-7072)
 
 ## License
 

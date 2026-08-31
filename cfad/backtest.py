@@ -144,7 +144,9 @@ class WalkForwardBacktest:
             fold_len = base + (1 if i < extra else 0)
             test_end = test_start + fold_len
             train_end = test_start
-            train_start = 0 if self.expanding else max(0, train_end - train_size_fixed)
+            train_start = (
+                0 if self.expanding else max(0, train_end - train_size_fixed)
+            )
 
             if train_end - train_start < window:
                 raise ValueError("Training fold is shorter than detector window")
@@ -240,7 +242,9 @@ class WalkForwardBacktest:
                 aggregate_alarms.extend(global_alarm_idx.astype(int).tolist())
 
             if dates_idx is None:
-                fold_dates.append((train_start, train_end - 1, test_start, test_end - 1))
+                fold_dates.append(
+                    (train_start, train_end - 1, test_start, test_end - 1)
+                )
             else:
                 fold_dates.append(
                     (
@@ -300,7 +304,9 @@ class WalkForwardBacktest:
             else:
                 left = date_values[pos - 1]
                 right = date_values[pos]
-                nearest = pos - 1 if abs(target - left) <= abs(right - target) else pos
+                nearest = (
+                    pos - 1 if abs(target - left) <= abs(right - target) else pos
+                )
             break_indices.append(nearest)
 
         if not break_indices:
@@ -324,7 +330,10 @@ class WalkForwardBacktest:
             false_alarms = 0
         else:
             true_alarm_mask = np.asarray(
-                [np.any(np.abs(breaks - alarm) <= tolerance_windows) for alarm in alarms],
+                [
+                    np.any(np.abs(breaks - alarm) <= tolerance_windows)
+                    for alarm in alarms
+                ],
                 dtype=bool,
             )
             true_alarm_count = int(np.sum(true_alarm_mask))

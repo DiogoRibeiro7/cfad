@@ -1,0 +1,41 @@
+{
+  "status": "failed-publication-screen",
+  "purpose": "Immutable summary of the first corrected-score benchmark so v2 cannot retroactively reinterpret v1 as successful.",
+  "workflow_run_id": 33392690781,
+  "workflow_head_sha": "8217ed59dae6f5e78b7db5051418ba38bd1c14e3",
+  "artifact": {
+    "id": 9758103746,
+    "name": "corrected-benchmark-evidence",
+    "digest": "sha256:da1b4012776e80259e2329bccf887f0ca72ad50b18b40e517bc7b654b66f304c"
+  },
+  "v1_design": {
+    "target_series_false_alarm_rate": 0.05,
+    "threshold_calibration_replicates": 100,
+    "evaluation_replicates": 200,
+    "maximum_tested_h": 12.0
+  },
+  "selected_thresholds": {
+    "cfad_ecf_shape": 12.0,
+    "rolling_mean": 12.0,
+    "rolling_log_variance": 12.0,
+    "rolling_excess_kurtosis": 12.0
+  },
+  "cfad_results": {
+    "null_gaussian_false_alarm_rate": 0.885,
+    "null_student_t_false_alarm_rate": 0.825,
+    "shape_student_t_pre_change_false_alarm_rate": 0.62,
+    "shape_student_t_power": 0.875,
+    "shape_student_t_median_delay": 45.0,
+    "shape_skew_pre_change_false_alarm_rate": 0.615,
+    "shape_skew_power": 0.845,
+    "shape_skew_median_delay": 50.0
+  },
+  "publication_screen": {
+    "passes_all": false,
+    "failed_check": "null_false_alarm_control",
+    "cfad_average_shape_power": 0.86,
+    "best_moment_average_shape_power": 0.7050000000000001,
+    "average_power_advantage_over_best_moment_baseline": 0.15499999999999992
+  },
+  "interpretation": "The corrected ECF-shape score showed signal, but the v1 threshold grid did not come close to the target series-level false-alarm probability. v2 changes only the prospective sequential calibration/evaluation contract; this v1 result remains failed evidence."
+}

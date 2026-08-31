@@ -32,8 +32,7 @@
   "related_identifiers": [
     {
       "identifier": "https://github.com/DiogoRibeiro7/cfad",
-      "relation": "isDerivedFrom",
-      "scheme": "url"
+      "relation": "isDerivedFrom"
     }
   ],
   "references": [

@@ -43,9 +43,7 @@ def plot_scores(
         x_scores = np.arange(n_scores)
         alarm_x_bottom = valid_alarm_idx
 
-    returns_arr = (
-        np.asarray(returns, dtype=np.float64) if returns is not None else None
-    )
+    returns_arr = np.asarray(returns, dtype=np.float64) if returns is not None else None
 
     if ax is None:
         if returns_arr is None:
@@ -158,9 +156,7 @@ def load_spy_sample(
         resolved_cache_path = Path(__file__).resolve().parents[1] / resolved_cache_path
 
     if cache_path == "data/spy_sample.csv":
-        legacy_path = (
-            Path(__file__).resolve().parents[1] / "data" / "spy_2018_2022.csv"
-        )
+        legacy_path = Path(__file__).resolve().parents[1] / "data" / "spy_2018_2022.csv"
         if legacy_path.exists():
             resolved_cache_path = legacy_path
 

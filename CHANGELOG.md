@@ -6,6 +6,8 @@ Versioning follows [Semantic Versioning](https://semver.org/).
 
 ## [Unreleased]
 
+## [0.2.0] — 2026-08-31
+
 ### Changed
 - Replaced the empirical contour-residue proxy with a real-frequency ECF shape
   score: normalized L2 distance from each window ECF to the Gaussian CF fitted
@@ -18,9 +20,22 @@ Versioning follows [Semantic Versioning](https://semver.org/).
 - Unified batch and streaming scoring so optional Cython extensions change
   performance rather than the definition of the statistic.
 - Replaced contour-height sensitivity with real-frequency cutoff sensitivity.
-- Updated README, paper, citation, archive metadata, and affiliation to match the
-  corrected method and current project status.
+- Updated README, software paper, citation metadata, Zenodo metadata, and
+  affiliation to match the corrected method and current project status.
 - Reattached CI to the repository's actual development branch, `develop`.
+
+### Added
+- Frozen v2 sequential-calibration validation with explicit false-alarm,
+  first-alarm power, and detection-delay rules.
+- Frozen v3 empirical-ECF score validation separating frequency standardization,
+  reference-law choice, null robustness, and location/scale specificity.
+- Comparative finite-window validation framework covering targeted moments,
+  empirical-reference ECF, energy distance, Gaussian-kernel MMD, and
+  Wasserstein-1 across registered shape alternatives and null laws.
+- Machine-readable evidence records preserving failed confirmatory screens and
+  workflow/artifact provenance rather than tuning negative results away.
+- Separate methodological-paper scaffold for omnibus-versus-targeted finite-window
+  distributional change detection.
 
 ### Removed
 - Removed the obsolete Cython `contour_quad` extension, which used a real-axis
@@ -33,6 +48,21 @@ Versioning follows [Semantic Versioning](https://semver.org/).
   rolling window rather than the exclusive endpoint.
 - Removed CPU-specific and unsafe floating-point build flags from distributable
   Cython extensions.
+- Corrected CGMY normalization at the removable `Y = 1` singularity and enforced
+  exact normalization at zero frequency.
+- Fixed leakage in walk-forward calibration so thresholds are estimated from
+  in-control training information only.
+
+### Validation status
+- CFAD's frozen v2 and v3 programmes do not establish a statistically validated
+  sequential detector or superiority over simpler moment-based shape summaries.
+- The comparative finite-window study found strong average performance for
+  energy distance, Gaussian MMD, and Wasserstein-1, but no registered omnibus
+  method passed the prespecified worst-case window-60 AUC criterion.
+- The current comparative benchmark's per-method computational timing column is
+  known to be invalid because the combined score call was timed once and divided
+  equally across methods. Statistical scores, AUCs, robustness summaries, and
+  confirmatory decisions are unaffected; timing will be repaired separately.
 
 ## [0.1.0] — 2025-01-01
 
@@ -54,4 +84,4 @@ Versioning follows [Semantic Versioning](https://semver.org/).
 
 > **Historical note:** the original 0.1.0 development code described its score
 > as an empirical contour residue. That interpretation is superseded by the
-> correction documented under **Unreleased** above.
+> correction documented in version 0.2.0.

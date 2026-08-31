@@ -1,13 +1,15 @@
-"""
-Public API — single-function entry points for common use cases.
-"""
-from __future__ import annotations
-import numpy as np
-import pandas as pd
-from numpy.typing import NDArray
-from typing import Optional, Union
+"""Public API entry points for common CFAD workflows."""
 
-from cfad.detection import RollingDetector, AnomalyReport
+from __future__ import annotations
+
+from typing import Optional, Union
+import warnings
+
+import numpy as np
+from numpy.typing import NDArray
+import pandas as pd
+
+from cfad.detection import AnomalyReport, RollingDetector
 
 
 def detect(
@@ -15,51 +17,60 @@ def detect(
     window: int = 60,
     xi_range: tuple[float, float] = (-10.0, 10.0),
     n_xi: int = 128,
-    height: float = 0.2,
     step: int = 1,
     calibration_frac: float = 0.3,
+    k: float = 0.5,
     h: float = 5.0,
+    *,
+    height: float | None = None,
 ) -> AnomalyReport:
-    """
-    Detect structural anomalies in a financial return series.
+    """Detect distributional-shape changes in a financial return series.
+
+    Each rolling empirical characteristic function is compared with the
+    Gaussian characteristic function fitted to the same window. The resulting
+    real-frequency L2 distance is monitored with a two-sided Page-CUSUM.
 
     Parameters
     ----------
-    returns : array-like or pd.Series
-        Log-returns (daily, intraday, etc.).
-    window : int
+    returns : array-like or pandas.Series
+        One-dimensional return series.
+    window : int, default=60
         Rolling window size for ECF estimation.
-    xi_range : (float, float)
-        Frequency grid [xi_min, xi_max].
-    n_xi : int
+    xi_range : tuple[float, float], default=(-10, 10)
+        Real-frequency grid bounds.
+    n_xi : int, default=128
         Number of frequency grid points.
-    height : float
-        Contour imaginary half-height (keep < analyticity strip).
-    step : int
+    step : int, default=1
         Rolling step.
-    calibration_frac : float
-        Fraction of data for in-control calibration.
-    h : float
-        CUSUM alarm threshold.
+    calibration_frac : float, default=0.3
+        Fraction of score windows used to estimate the in-control score mean and
+        standard deviation.
+    k : float, default=0.5
+        Dimensionless Page-CUSUM reference value on standardized scores.
+    h : float, default=5.0
+        CUSUM decision threshold.
+    height : float or None, keyword-only
+        Deprecated compatibility argument from the former empirical-contour
+        implementation. It is ignored by the corrected real-frequency score and
+        will be removed in a future breaking release.
 
     Returns
     -------
     AnomalyReport
-        Contains scores, CUSUM statistics, alarm indices and dates.
-
-    Examples
-    --------
-    >>> import yfinance as yf
-    >>> from cfad import detect
-    >>> prices = yf.download("SPY", start="2019-01-01", end="2021-01-01")["Close"]
-    >>> rets = prices.pct_change().dropna()
-    >>> report = detect(rets, window=60, h=4.0)
-    >>> print(report.summary())
+        Scores, CUSUM statistics, alarm indices, and optional dates.
     """
+    if height is not None:
+        warnings.warn(
+            "height is deprecated and ignored; CFAD now uses a real-frequency "
+            "ECF shape score. Tune xi_range instead.",
+            DeprecationWarning,
+            stacklevel=2,
+        )
+
     dates = None
     if isinstance(returns, pd.Series):
         dates = returns.index if hasattr(returns.index, "to_pydatetime") else None
-        returns_arr = returns.values.astype(np.float64)
+        returns_arr = returns.to_numpy(dtype=np.float64)
     else:
         returns_arr = np.asarray(returns, dtype=np.float64)
 
@@ -68,9 +79,9 @@ def detect(
         xi_min=xi_range[0],
         xi_max=xi_range[1],
         n_xi=n_xi,
-        height=height,
         step=step,
         calibration_frac=calibration_frac,
+        k=k,
         h=h,
     )
     return detector.fit_transform(returns_arr, dates=dates)
@@ -79,31 +90,48 @@ def detect(
 def compare_models(
     returns: NDArray[np.float64],
     xi: Optional[NDArray[np.float64]] = None,
-) -> dict:
-    """
-    Fit Gaussian and NIG models and compare their AIC and CF distance.
+) -> dict[str, object]:
+    """Fit Gaussian and NIG models and compare real-frequency ECF distance.
 
-    Returns a dict with keys 'gaussian', 'nig', and 'winner'.
-    Useful for confirming whether non-analytic structure is present.
+    This model comparison is descriptive evidence about distributional fit. It
+    must not be interpreted as a test for branch cuts or population-CF
+    singularities from a finite-sample empirical characteristic function.
     """
+    from cfad.empirical_cf import ecf_at
     from cfad.models.gaussian import GaussianCF
     from cfad.models.nig import NIGCF
-    from cfad.empirical_cf import ecf_at
 
-    returns = np.asarray(returns, dtype=np.float64)
-    if xi is None:
-        xi = np.linspace(-15, 15, 256)
+    values = np.asarray(returns, dtype=np.float64)
+    if values.ndim != 1 or values.size < 2:
+        raise ValueError("returns must be one-dimensional with at least 2 values")
+    if not np.all(np.isfinite(values)):
+        raise ValueError("returns must contain only finite values")
 
-    ecf = ecf_at(returns, xi)
+    grid = (
+        np.linspace(-15.0, 15.0, 256, dtype=np.float64)
+        if xi is None
+        else np.asarray(xi, dtype=np.float64)
+    )
+    if grid.ndim != 1 or grid.size < 4:
+        raise ValueError("xi must be one-dimensional with at least 4 values")
 
-    g = GaussianCF().fit(returns)
-    n = NIGCF().fit(returns)
+    empirical = ecf_at(values, grid)
+    gaussian = GaussianCF().fit(values)
+    nig = NIGCF().fit(values)
 
-    g_dist = float(np.mean(np.abs(ecf - g.cf(xi)) ** 2))
-    n_dist = float(np.mean(np.abs(ecf - n.cf(xi)) ** 2))
+    gaussian_distance = float(np.mean(np.abs(empirical - gaussian.cf(grid)) ** 2))
+    nig_distance = float(np.mean(np.abs(empirical - nig.cf(grid)) ** 2))
 
     return {
-        "gaussian": {"model": g, "ecf_l2": g_dist, "aic": g.aic(returns)},
-        "nig":      {"model": n, "ecf_l2": n_dist, "aic": n.aic(returns)},
-        "winner":   "nig" if n_dist < g_dist else "gaussian",
+        "gaussian": {
+            "model": gaussian,
+            "ecf_l2": gaussian_distance,
+            "aic": gaussian.aic(values),
+        },
+        "nig": {
+            "model": nig,
+            "ecf_l2": nig_distance,
+            "aic": nig.aic(values),
+        },
+        "winner": "nig" if nig_distance < gaussian_distance else "gaussian",
     }

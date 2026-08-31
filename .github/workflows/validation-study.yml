@@ -1,0 +1,52 @@
+name: Comparative validation study
+
+on:
+  workflow_dispatch:
+  push:
+    branches:
+      - research/validation-study-benchmark
+    paths:
+      - "paper/validation_study_protocol.md"
+      - "benchmarks/validation_study_benchmark.py"
+      - "tests/test_validation_study_benchmark.py"
+      - ".github/workflows/validation-study.yml"
+
+jobs:
+  benchmark:
+    runs-on: ubuntu-latest
+    timeout-minutes: 120
+
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"
+          cache: pip
+
+      - name: Install build dependencies
+        run: |
+          python -m pip install --upgrade pip
+          python -m pip install "setuptools>=68" wheel "numpy>=1.24" "Cython>=3.0"
+
+      - name: Install package and development dependencies
+        run: python -m pip install -e ".[dev]" --no-build-isolation
+
+      - name: Build Cython extensions
+        run: python setup.py build_ext --inplace
+
+      - name: Check comparative benchmark invariants
+        run: python -m pytest tests/test_validation_study_benchmark.py -q
+
+      - name: Check substantive benchmark lint
+        run: ruff check benchmarks/validation_study_benchmark.py tests/test_validation_study_benchmark.py --select F,I
+
+      - name: Run frozen comparative benchmark
+        run: python benchmarks/validation_study_benchmark.py
+
+      - name: Upload comparative evidence
+        uses: actions/upload-artifact@v4
+        with:
+          name: validation-study-evidence
+          path: benchmarks/results_validation_study/
+          if-no-files-found: error

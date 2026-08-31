@@ -4,81 +4,114 @@ Mathematics
 Empirical Characteristic Function
 ---------------------------------
 
-Let :math:`r_1, \dots, r_n` be log-returns. The empirical characteristic
-function (ECF) is
+Let :math:`r_1, \dots, r_n` be returns in one rolling window. The empirical
+characteristic function (ECF) is
 
 .. math::
 
-   \hat{\varphi}_n(\xi) = \frac{1}{n}\sum_{j=1}^{n} e^{i \xi r_j}.
+   \widehat{\varphi}_n(\xi)
+   = \frac{1}{n}\sum_{j=1}^{n} e^{i \xi r_j},
+   \qquad \xi \in \mathbb{R}.
 
-Under standard regularity conditions, :math:`\hat{\varphi}_n(\xi)` converges
-pointwise to the true characteristic function as :math:`n \to \infty`.
-ECF-based testing is classical in statistics (Epps and Pulley, 1983).
+Under standard conditions the ECF converges pointwise to the population
+characteristic function. ECF-based goodness-of-fit methods are classical in
+statistics, including Epps and Pulley (1983).
 
-Residue-Theorem Detector
+Gaussian Shape Reference
 ------------------------
 
-For each rolling window, ``cfad`` evaluates a contour score
+For the same window, estimate the sample mean and sample standard deviation,
+:math:`\widehat\mu_n` and :math:`\widehat\sigma_n`. The fitted Gaussian
+characteristic function is
 
 .. math::
 
-   S_t = \left| \oint_C \hat{\varphi}_n(\xi)\, d\xi \right|.
+   \varphi_G(\xi)
+   = \exp\!\left(
+       i\widehat\mu_n\xi
+       -\frac{1}{2}\widehat\sigma_n^2\xi^2
+     \right).
 
-The Residue Theorem implies
-
-.. math::
-
-   \oint_C f(z)\,dz = 2\pi i \sum_k \operatorname{Res}(f, z_k),
-
-where the sum runs over singularities enclosed by :math:`C`.
-
-If the characteristic function is entire on and inside :math:`C`, Cauchy's
-theorem implies the sum is empty and therefore :math:`S_t = 0` (up to numerical
-integration error in finite samples).
-
-Analyticity Strip for NIG
--------------------------
-
-For the Normal Inverse Gaussian characteristic function, analyticity is limited
-to the strip
+CFAD measures the discrepancy between the ECF and this fitted Gaussian reference
+on a finite real-frequency interval:
 
 .. math::
 
-   \left\{ \xi \in \mathbb{C} : |\operatorname{Im}\xi| < \alpha - |\beta| \right\}.
+   D_n =
+   \left[
+   \frac{1}{\xi_{\max}-\xi_{\min}}
+   \int_{\xi_{\min}}^{\xi_{\max}}
+   \left|
+   \widehat\varphi_n(\xi)-\varphi_G(\xi)
+   \right|^2 d\xi
+   \right]^{1/2}.
 
-This strip determines contour heights that remain in an analytic region versus
-heights that can intersect non-analytic structure.
+Because location and scale are fitted inside every window, :math:`D_n` is aimed
+primarily at higher-order distributional shape changes such as tail or skewness
+changes. It is not invariant to every possible finite-sample effect, so its
+operating characteristics must be established empirically for the application.
 
-Rectangular Contour
--------------------
+Why This Is Not an Empirical Residue Test
+-----------------------------------------
 
-The detector uses a rectangular contour with corners
-:math:`\xi_{\min} \pm i\eta` and :math:`\xi_{\max} \pm i\eta`, traversed
-counterclockwise. Numerically, the integral is approximated along the four
-segments:
+For a finite sample, the ECF can be extended to complex :math:`z` as
 
 .. math::
 
-   C = C_{\text{bottom}} \cup C_{\text{right}} \cup C_{\text{top}} \cup C_{\text{left}}.
+   \widehat\varphi_n(z)
+   = \frac{1}{n}\sum_{j=1}^{n} e^{iz r_j}.
 
-This contour keeps integration close to the real line while probing
-complex-plane structure through the imaginary offset :math:`\eta`.
+Each term is entire in :math:`z`, and a finite sum of entire functions is entire.
+Therefore, for any closed contour :math:`C`, Cauchy's theorem gives
+
+.. math::
+
+   \oint_C \widehat\varphi_n(z)\,dz = 0.
+
+A finite-sample ECF contour integral therefore cannot identify branch cuts or
+poles of the population characteristic function. Earlier CFAD development text
+used that interpretation; it is superseded by the real-frequency discrepancy
+score above.
+
+Parametric Complex-Plane Diagnostics
+------------------------------------
+
+The package retains a general closed-contour integration helper for parametric
+functions that are actually evaluated at complex arguments. Such calculations
+may be useful for studying a specified parametric characteristic function, but
+they are separate from the empirical anomaly score and should not be interpreted
+as evidence extracted from a finite-sample ECF residue.
 
 Sequential CUSUM Layer
 ----------------------
 
-The score stream :math:`\{S_t\}` is passed to a two-sided CUSUM monitor. For
-the positive branch:
+Let :math:`D_t` denote the rolling score sequence. Estimate in-control moments
+:math:`\mu_0` and :math:`\sigma_0` from a prespecified calibration prefix and
+standardize
 
 .. math::
 
-   S_t^+ = \max\!\left(0, S_{t-1}^+ + \frac{S_t - \mu_0}{\sigma_0} - k\right),
+   z_t = \frac{D_t-\mu_0}{\sigma_0}.
 
-with alarm threshold :math:`h`. This converts window-level structural evidence
-into sequential alarms.
+CFAD then applies a two-sided Page-CUSUM:
 
-Reference
----------
+.. math::
+
+   S_t^+ = \max(0, S_{t-1}^+ + z_t-k),
+
+.. math::
+
+   S_t^- = \max(0, S_{t-1}^- - z_t-k).
+
+An alarm is emitted when either branch exceeds a decision threshold :math:`h`.
+Because :math:`z_t` is standardized, the Page reference value :math:`k` is
+dimensionless.
+
+References
+----------
 
 Epps, T. W., and Pulley, L. B. (1983). *A test for normality based on the
 empirical characteristic function*. Biometrika, 70(3), 723-726.
+
+Page, E. S. (1954). *Continuous Inspection Schemes*. Biometrika, 41(1/2),
+100-115.

@@ -1,19 +1,18 @@
 """Tests for API, utils, and auxiliary coverage-critical code."""
 
-import matplotlib
-
-matplotlib.use("Agg")
 from pathlib import Path
 
+import matplotlib
 import matplotlib.pyplot as plt
 import numpy as np
 import pandas as pd
 import pytest
 
+matplotlib.use("Agg")
+
 from cfad import compare_models, detect
 from cfad.detection import AnomalyReport
 from cfad.empirical_cf import ecf_covariance
-from cfad.models.base import CFModel
 from cfad.models.gaussian import GaussianCF
 from cfad.models.nig import NIGCF
 from cfad.residue_score import normalise_scores, rolling_pvalue, threshold_by_fpr
@@ -101,7 +100,7 @@ def test_plot_scores_with_returns_and_alarms():
 
 
 def test_plot_scores_invalid_axes():
-    fig, axs = plt.subplots(1, 1)
+    _, axs = plt.subplots(1, 1)
     with pytest.raises(ValueError):
         plot_scores(
             AnomalyReport(
@@ -130,7 +129,7 @@ def test_load_spy_sample_cached():
     try:
         returns = load_spy_sample()
         assert len(returns) == 2
-        assert returns.index.dtype == "datetime64[ns]"
+        assert pd.api.types.is_datetime64_any_dtype(returns.index.dtype)
     finally:
         data_path.unlink()
 

@@ -1,0 +1,128 @@
+{
+  "status": "primary-statistical-result-frozen-secondary-timing-invalid",
+  "study": "comparative finite-window validation study",
+  "workflow_run_id": 33437480605,
+  "workflow_job_id": 99637328092,
+  "head_sha": "0014c823aa2194ce416945919c8d2ead225a05a3",
+  "artifact": {
+    "name": "validation-study-evidence",
+    "artifact_id": 9775321486,
+    "digest": "sha256:23140617ec48967ae3892d30added21bdaf121e0b7498afe6c0481060072cb0b"
+  },
+  "protocol_sha256": "272be61e279655cef1d405ad6079380fb12c6ab0bb11d20d4c2b2e3f5fae9a4d",
+  "runner_sha256": "89a539ddb5c68675770a7a303fbde61490894c71855dbd417c15a62a6c5194c6",
+  "replicates_per_cell": 2000,
+  "seed_base": 4001000,
+  "seed_stride": 100000,
+  "confirmatory_screen": {
+    "empirical_ecf_l2": {
+      "passes_all": false,
+      "worst_shape_auc": false,
+      "mean_within_best_targeted": false,
+      "null_median_ratio": true,
+      "null_ks": true,
+      "location_scale_specificity": true
+    },
+    "energy_distance": {
+      "passes_all": false,
+      "worst_shape_auc": false,
+      "mean_within_best_targeted": true,
+      "null_median_ratio": true,
+      "null_ks": true,
+      "location_scale_specificity": true
+    },
+    "gaussian_mmd": {
+      "passes_all": false,
+      "worst_shape_auc": false,
+      "mean_within_best_targeted": true,
+      "null_median_ratio": true,
+      "null_ks": true,
+      "location_scale_specificity": true
+    },
+    "wasserstein_1": {
+      "passes_all": false,
+      "worst_shape_auc": false,
+      "mean_within_best_targeted": true,
+      "null_median_ratio": true,
+      "null_ks": false,
+      "location_scale_specificity": true
+    }
+  },
+  "window_60_method_summary": {
+    "kurtosis_distance": {"mean_shape_auc": 0.7437195, "worst_shape_auc": 0.57034275},
+    "skewness_distance": {"mean_shape_auc": 0.709478125, "worst_shape_auc": 0.38672875},
+    "joint_moment_distance": {"mean_shape_auc": 0.8103279166666667, "worst_shape_auc": 0.55293325},
+    "empirical_ecf_l2": {"mean_shape_auc": 0.7455666666666666, "worst_shape_auc": 0.550798},
+    "energy_distance": {"mean_shape_auc": 0.8395235, "worst_shape_auc": 0.5810555},
+    "gaussian_mmd": {"mean_shape_auc": 0.850013125, "worst_shape_auc": 0.59333725},
+    "wasserstein_1": {"mean_shape_auc": 0.8449777083333333, "worst_shape_auc": 0.559744}
+  },
+  "window_60_shape_auc": {
+    "heavier_tails": {
+      "kurtosis_distance": 0.823948,
+      "skewness_distance": 0.738526,
+      "joint_moment_distance": 0.83374725,
+      "empirical_ecf_l2": 0.6529915,
+      "energy_distance": 0.77799275,
+      "gaussian_mmd": 0.798694,
+      "wasserstein_1": 0.796978
+    },
+    "lighter_tails": {
+      "kurtosis_distance": 0.57034275,
+      "skewness_distance": 0.38672875,
+      "joint_moment_distance": 0.55293325,
+      "empirical_ecf_l2": 0.550798,
+      "energy_distance": 0.5810555,
+      "gaussian_mmd": 0.59333725,
+      "wasserstein_1": 0.559744
+    },
+    "positive_skew": {
+      "kurtosis_distance": 0.62134275,
+      "skewness_distance": 0.93335575,
+      "joint_moment_distance": 0.83054675,
+      "empirical_ecf_l2": 0.77619275,
+      "energy_distance": 0.923219,
+      "gaussian_mmd": 0.93656925,
+      "wasserstein_1": 0.9334985
+    },
+    "negative_skew": {
+      "kurtosis_distance": 0.634843,
+      "skewness_distance": 0.93444925,
+      "joint_moment_distance": 0.8348645,
+      "empirical_ecf_l2": 0.79243975,
+      "energy_distance": 0.931069,
+      "gaussian_mmd": 0.9403275,
+      "wasserstein_1": 0.93965125
+    },
+    "bimodality": {
+      "kurtosis_distance": 0.93793025,
+      "skewness_distance": 0.42738,
+      "joint_moment_distance": 0.93121025,
+      "empirical_ecf_l2": 0.98308025,
+      "energy_distance": 0.99622325,
+      "gaussian_mmd": 0.9887135,
+      "wasserstein_1": 0.99445575
+    },
+    "contamination": {
+      "kurtosis_distance": 0.87391,
+      "skewness_distance": 0.836429,
+      "joint_moment_distance": 0.878665,
+      "empirical_ecf_l2": 0.717897,
+      "energy_distance": 0.8275815,
+      "gaussian_mmd": 0.84243625,
+      "wasserstein_1": 0.8455375
+    }
+  },
+  "window_60_omnibus_robustness": {
+    "empirical_ecf_l2": {"max_null_median_ratio": 1.046653477867644, "max_null_ks": 0.106},
+    "energy_distance": {"max_null_median_ratio": 1.3608450565176575, "max_null_ks": 0.2315},
+    "gaussian_mmd": {"max_null_median_ratio": 1.5092419144468188, "max_null_ks": 0.334},
+    "wasserstein_1": {"max_null_median_ratio": 1.287918, "max_null_ks": 0.382}
+  },
+  "interpretation": {
+    "primary": "No registered omnibus method passed all confirmatory criteria at window size 60. Energy distance, Gaussian MMD and Wasserstein-1 had higher mean shape AUC than the best targeted mean, but all failed the worst-case AUC >= 0.70 criterion. The shared bottleneck was the registered Student-t(df=5) to Gaussian lighter-tail transition; the best AUC in that cell was 0.59333725 for Gaussian MMD.",
+    "specificity": "Within-window standardization produced mean/variance negative-control AUCs near 0.5 for all methods.",
+    "transportability": "ECF, energy and MMD passed the registered null-law transportability thresholds at window 60; Wasserstein-1 failed the KS <= 0.35 threshold with maximum KS 0.382.",
+    "timing_caveat": "The statistical scores, AUCs, robustness summaries and confirmatory screen are valid. The mean_seconds_per_window field in validation_method_summary.csv is invalid because the runner timed score_all() once and divided the same elapsed time equally across all seven methods. Computational timing must be re-estimated separately without altering the frozen statistical result."
+  }
+}

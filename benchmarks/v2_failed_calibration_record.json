@@ -1,0 +1,52 @@
+{
+  "status": "failed-publication-screen",
+  "purpose": "Immutable summary of the first valid v2 sequential-calibration experiment so subsequent redesigns cannot reinterpret or overwrite the result.",
+  "workflow_run_id": 33416653706,
+  "workflow_head_sha": "9f2e73be6b42593420290fb613c9610023f3acbb",
+  "artifact": {
+    "id": 9767307842,
+    "name": "sequential-calibration-v2-evidence",
+    "digest": "sha256:31387a7d78637e80046324e7886176ee986f247c394553c4aeaeb784582f13e6"
+  },
+  "cfad_threshold": 131.840407,
+  "cfad_results": {
+    "null_gaussian_false_alarm_rate": 0.064,
+    "null_gaussian_wilson95": [0.04569601604478943, 0.08895240883768415],
+    "null_student_t_false_alarm_rate": 0.256,
+    "null_student_t_wilson95": [0.219708, 0.296013],
+    "shape_student_t_power": 0.234,
+    "shape_student_t_wilson95": [0.199005, 0.273051],
+    "shape_student_t_median_delay": 80.0,
+    "shape_skew_power": 0.208,
+    "shape_skew_wilson95": [0.174716, 0.245736],
+    "shape_skew_median_delay": 80.0,
+    "mean_shift_power": 0.076,
+    "variance_shift_power": 0.866
+  },
+  "kurtosis_comparator": {
+    "null_gaussian_false_alarm_rate": 0.044,
+    "null_student_t_false_alarm_rate": 0.168,
+    "shape_student_t_power": 0.352,
+    "shape_skew_power": 0.082,
+    "average_shape_power": 0.217
+  },
+  "non_overlapping_cfad_diagnostic": {
+    "step": 60,
+    "null_gaussian_false_alarm_rate": 0.076,
+    "null_student_t_false_alarm_rate": 0.144
+  },
+  "publication_screen": {
+    "passes_all": false,
+    "cfad_average_shape_power": 0.221,
+    "checks": {
+      "gaussian_calibration_validation": false,
+      "null_false_alarm_control": false,
+      "shape_power": false,
+      "shape_delay": false,
+      "moment_baseline_advantage": true,
+      "kurtosis_power_noninferiority": false,
+      "kurtosis_delay_noninferiority": true
+    }
+  },
+  "interpretation": "V2 showed that series-level Page-CUSUM calibration can control CFAD false alarms under the Gaussian calibration law, but the Gaussian-reference score is not robust to a stationary heavy-tailed in-control law and has low first-alarm power once false alarms are controlled. The strong v1 power must not be cited without its failed false-alarm control."
+}

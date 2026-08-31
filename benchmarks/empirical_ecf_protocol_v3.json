@@ -1,0 +1,104 @@
+{
+  "protocol_version": "3.0",
+  "status": "frozen-before-v3-results",
+  "amendment": {
+    "id": "v3.0-pre-result-seed-amendment-1",
+    "reason": "The originally frozen seed_base=901000 was discovered to overlap v2 evaluation seed blocks before any v3 benchmark result or artifact existed.",
+    "evidence_state": "The first v3 workflow stopped at lint before the benchmark step and produced zero artifacts.",
+    "change": "Only monte_carlo.seed_base changes from 901000 to 2001000. All methods, scenarios, sample sizes, frequency grids, estimands and success criteria are unchanged."
+  },
+  "purpose": "Determine whether CF-based shape scoring adds information beyond kurtosis once frequency scaling and the in-control reference law are separated from the sequential alarm layer.",
+  "relationship_to_v2": {
+    "v2_status": "failed-publication-screen",
+    "v2_record": "benchmarks/v2_failed_calibration_record.json",
+    "redesign_rule": "No v2 threshold, power, delay, or robustness result may be used to choose v3 frequency grids, score definitions, scenarios, or success criteria after this protocol is committed.",
+    "sequential_rule": "V3 contains no CUSUM or alarm threshold. A sequential detector may be designed only if the score-level screen passes."
+  },
+  "series": {
+    "n_observations": 600,
+    "change_point": 360,
+    "base_sigma": 0.01,
+    "reference_observations": 300,
+    "evaluation_window": 60,
+    "evaluation_step": 60,
+    "note": "Primary score evaluation uses non-overlapping 60-observation windows so the experiment measures score discrimination rather than dependence induced by overlapping windows."
+  },
+  "frequency_grid": {
+    "standardized_xi_min": -10.0,
+    "standardized_xi_max": 10.0,
+    "n_xi": 128,
+    "spacing": "linear",
+    "weighting": "uniform trapezoidal integral normalized by xi range",
+    "rationale": "V2 used raw returns with sigma approximately 0.01 and xi_max=10, which probes only about 0.1 on the standardized frequency scale. V3 explicitly evaluates standardized-frequency scores."
+  },
+  "methods": {
+    "legacy_raw_gaussian": {
+      "role": "diagnostic ablation",
+      "definition": "V2-style L2 ECF distance on raw returns to a Gaussian CF fitted by each window's sample mean and sample standard deviation, xi in [-10,10]."
+    },
+    "standardized_gaussian": {
+      "role": "frequency-scaling ablation",
+      "definition": "Standardize each window by its own sample mean and sample standard deviation, then compute normalized L2 distance between its ECF and the standard-normal CF on the standardized xi grid."
+    },
+    "standardized_empirical_reference": {
+      "role": "primary CF score",
+      "definition": "Estimate one in-control reference ECF from the first 300 observations after standardizing that reference block by its own mean and sample standard deviation. Standardize every evaluation window by its own mean and sample standard deviation and compute normalized L2 distance between its ECF and the frozen reference ECF on the standardized xi grid. The reference ECF is never updated after monitoring starts."
+    },
+    "rolling_excess_kurtosis_distance": {
+      "role": "primary comparator",
+      "definition": "Absolute difference between each standardized evaluation window's unbiased excess kurtosis and the excess kurtosis estimated from the frozen standardized reference block."
+    },
+    "rolling_skewness_distance": {
+      "role": "secondary comparator",
+      "definition": "Absolute difference between each standardized evaluation window's unbiased sample skewness and the skewness estimated from the frozen standardized reference block."
+    }
+  },
+  "scenarios": {
+    "null_gaussian": "Stationary N(0,sigma^2).",
+    "null_student_t": "Stationary Student-t(df=5), rescaled to theoretical standard deviation sigma. The reference block and monitoring windows are drawn from the same stable heavy-tailed law.",
+    "shape_student_t": "Gaussian through observation 359, then Student-t(df=4), rescaled to theoretical standard deviation sigma.",
+    "shape_skew": "Gaussian through observation 359, then standardized skew-normal(shape=8) with sample mean 0 and sample standard deviation sigma in the generated post-change segment.",
+    "mean_shift": "Gaussian throughout with post-change mean +1.5 sigma and unchanged variance.",
+    "variance_shift": "Gaussian throughout with post-change standard deviation 1.75 sigma and unchanged mean."
+  },
+  "monte_carlo": {
+    "replicates_per_scenario": 1000,
+    "seed_base": 2001000,
+    "scenario_seed_stride": 100000,
+    "seed_rule": "All v3 seeds are disjoint from v1 and v2. Every method sees identical generated series within each scenario/replicate."
+  },
+  "primary_estimands": {
+    "window_auc": "ROC AUC distinguishing post-change evaluation windows from stable-null evaluation windows using the score, computed separately for Gaussian-to-Student-t and Gaussian-to-skew alternatives against their Gaussian-null counterpart.",
+    "null_law_stability": "For each method, compare its score distribution under stationary Gaussian and stationary Student-t via the ratio of medians and the two-sample Kolmogorov-Smirnov statistic. This is descriptive robustness evidence, not a hypothesis-test gate based on p-values.",
+    "location_scale_specificity": "ROC AUC for pure mean and variance changes; because every primary v3 window is standardized by its own mean and standard deviation, a shape-specific score should have AUC close to 0.5 for these alternatives."
+  },
+  "evaluation_units": {
+    "reference_block": "observations [0,300)",
+    "pre_change_monitor_window": "[300,360)",
+    "post_change_windows": "[360,420), [420,480), [480,540), [540,600)",
+    "null_monitor_windows": "the same five monitoring windows [300,360), [360,420), [420,480), [480,540), [540,600) under stationary null scenarios",
+    "auc_sampling_rule": "For each replicate, pool the four post-change windows for an alternative with the four time-matched windows [360,420), [420,480), [480,540), [540,600) from the corresponding null replicate. The [300,360) pre-change window is reserved for invariance diagnostics and is not labelled as either post-change positive or null negative in primary AUC."
+  },
+  "success_screen": {
+    "primary_method": "standardized_empirical_reference",
+    "min_auc_each_shape_alternative": 0.75,
+    "min_average_auc_advantage_over_kurtosis": 0.05,
+    "max_null_median_ratio_student_t_to_gaussian": 2.0,
+    "max_null_ks_statistic_gaussian_vs_student_t": 0.35,
+    "mean_shift_auc_range": [0.4, 0.6],
+    "variance_shift_auc_range": [0.4, 0.6],
+    "require_standardized_empirical_auc_not_worse_than_standardized_gaussian_by_more_than": 0.02,
+    "decision_rule": "All primary criteria must pass before any new sequential alarm layer is designed. Failure is preserved; no post-hoc xi tuning or method switching is permitted under v3."
+  },
+  "reporting": {
+    "required_outputs": [
+      "per-window scores with scenario, replicate, seed, method and window bounds",
+      "AUC table for every method and alternative",
+      "null-law robustness table",
+      "location-scale specificity table",
+      "success-screen JSON",
+      "protocol SHA-256 and runner SHA-256"
+    ],
+    "interpretation_rule": "V3 is a score-validation experiment, not evidence for a deployable sequential detector."
+  }
+}

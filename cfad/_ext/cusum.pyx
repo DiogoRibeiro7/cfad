@@ -1,13 +1,8 @@
 # cython: language_level=3, boundscheck=False, wraparound=False, cdivision=True
-"""
-CUSUM sequential change-point detection — Cython hot path.
+"""Cython implementation of the two-sided Page-CUSUM recursion."""
 
-Implements the two-sided Page-CUSUM statistic on a stream of anomaly scores.
-Alerts when S_t exceeds threshold h.
-"""
 import numpy as np
 cimport numpy as np
-from libc.math cimport fabs
 
 ctypedef np.float64_t DTYPE_t
 
@@ -19,50 +14,42 @@ def cusum(
     double k=0.5,
     double h=5.0,
 ):
+    """Apply two-sided CUSUM to standardized anomaly scores.
+
+    ``z_t = (score_t - mu0) / sigma0`` is dimensionless, so the Page reference
+    value ``k`` is dimensionless as well.  Earlier versions multiplied ``k`` by
+    ``sigma0`` after standardization, which mixed units and made the effective
+    reference value depend incorrectly on the raw score scale.
     """
-    Two-sided CUSUM on a sequence of anomaly scores.
+    if sigma0 <= 0.0:
+        raise ValueError("sigma0 must be positive")
+    if k < 0.0:
+        raise ValueError("k must be non-negative")
+    if h <= 0.0:
+        raise ValueError("h must be positive")
 
-    Parameters
-    ----------
-    scores : float ndarray of shape (T,)
-        Anomaly score time series.
-    mu0 : float
-        In-control mean (estimated from calm period).
-    sigma0 : float
-        In-control std.
-    k : float
-        Allowance parameter (default 0.5 = detect 1-sigma shifts).
-    h : float
-        Decision threshold in units of sigma0.
+    cdef int n_scores = scores.shape[0]
+    cdef double s_pos = 0.0
+    cdef double s_neg = 0.0
+    cdef double z
+    cdef int t
 
-    Returns
-    -------
-    S_pos : float ndarray of shape (T,)
-    S_neg : float ndarray of shape (T,)
-    alarms : int ndarray  -- time indices where |S| > h
-    """
-    cdef int T = scores.shape[0]
-    cdef double S_pos = 0.0, S_neg = 0.0
-    cdef double z, slack
+    positive_arr = np.zeros(n_scores, dtype=np.float64)
+    negative_arr = np.zeros(n_scores, dtype=np.float64)
+    alarms = []
 
-    s_pos_arr = np.zeros(T, dtype=np.float64)
-    s_neg_arr = np.zeros(T, dtype=np.float64)
-    alarm_list = []
+    cdef np.ndarray[DTYPE_t, ndim=1] positive = positive_arr
+    cdef np.ndarray[DTYPE_t, ndim=1] negative = negative_arr
 
-    cdef np.ndarray[DTYPE_t, ndim=1] sp = s_pos_arr
-    cdef np.ndarray[DTYPE_t, ndim=1] sn = s_neg_arr
-
-    slack = k * sigma0
-
-    for t in range(T):
+    for t in range(n_scores):
         z = (scores[t] - mu0) / sigma0
-        S_pos = max(0.0, S_pos + z - slack)
-        S_neg = max(0.0, S_neg - z - slack)
-        sp[t] = S_pos
-        sn[t] = S_neg
-        if S_pos > h or S_neg > h:
-            alarm_list.append(t)
-            S_pos = 0.0
-            S_neg = 0.0
+        s_pos = max(0.0, s_pos + z - k)
+        s_neg = max(0.0, s_neg - z - k)
+        positive[t] = s_pos
+        negative[t] = s_neg
+        if s_pos > h or s_neg > h:
+            alarms.append(t)
+            s_pos = 0.0
+            s_neg = 0.0
 
-    return s_pos_arr, s_neg_arr, np.array(alarm_list, dtype=np.int64)
+    return positive_arr, negative_arr, np.asarray(alarms, dtype=np.int64)

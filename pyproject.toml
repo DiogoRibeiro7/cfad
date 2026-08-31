@@ -1,27 +1,33 @@
 [build-system]
 requires = ["setuptools>=68", "wheel", "Cython>=3.0", "numpy>=1.24"]
-build-backend = "setuptools.backends.legacy:build"
+build-backend = "setuptools.build_meta"
 
 [project]
 name = "cfad"
-version = "0.1.0"
-description = "Characteristic Function Anomaly Detector: contour-integral residue scoring for structural breaks in financial time series"
+version = "0.2.0"
+description = "ECF-based distributional-shape anomaly detection for financial time series"
 readme = "README.md"
-license = { file = "LICENSE" }
+license = "MIT"
 authors = [
-  { name = "Diogo Ribeiro", email = "dfr@esmad.ipp.pt" }
+  { name = "Diogo Ribeiro" }
 ]
-keywords = ["anomaly detection", "characteristic function", "contour integration", "Lévy processes", "financial time series", "change-point detection"]
+keywords = [
+  "anomaly detection",
+  "empirical characteristic function",
+  "financial time series",
+  "change-point detection",
+  "CUSUM",
+]
 classifiers = [
   "Development Status :: 3 - Alpha",
   "Intended Audience :: Science/Research",
   "Topic :: Scientific/Engineering :: Mathematics",
-  "License :: OSI Approved :: MIT License",
   "Programming Language :: Python :: 3",
   "Programming Language :: Python :: 3.10",
   "Programming Language :: Python :: 3.11",
   "Programming Language :: Python :: 3.12",
   "Programming Language :: Cython",
+  "Typing :: Typed",
 ]
 requires-python = ">=3.10"
 dependencies = [
@@ -34,31 +40,55 @@ dependencies = [
 ]
 
 [project.optional-dependencies]
-dev = ["pytest>=7.4", "pytest-cov", "black", "ruff", "mypy", "Cython>=3.0", "hypothesis>=6.100"]
+dev = [
+  "pytest>=7.4",
+  "pytest-cov>=4.1",
+  "black>=24.0",
+  "ruff>=0.6",
+  "mypy>=1.10",
+  "Cython>=3.0",
+  "hypothesis>=6.100",
+]
 notebooks = ["jupyter", "seaborn", "yfinance"]
 docs = ["sphinx", "sphinx-rtd-theme", "numpydoc"]
 
 [project.urls]
-Homepage = "https://github.com/diogoribeiro7/cfad"
-Repository = "https://github.com/diogoribeiro7/cfad"
+Homepage = "https://github.com/DiogoRibeiro7/cfad"
+Repository = "https://github.com/DiogoRibeiro7/cfad"
 Documentation = "https://cfad.readthedocs.io"
-Changelog = "https://github.com/diogoribeiro7/cfad/blob/main/CHANGELOG.md"
-"Bug Tracker" = "https://github.com/diogoribeiro7/cfad/issues"
+Changelog = "https://github.com/DiogoRibeiro7/cfad/blob/develop/CHANGELOG.md"
+"Bug Tracker" = "https://github.com/DiogoRibeiro7/cfad/issues"
 
 [project.scripts]
 cfad = "cfad.cli:main"
+
+[tool.setuptools.packages.find]
+include = ["cfad*"]
+
+[tool.setuptools.package-data]
+cfad = ["py.typed"]
 
 [tool.cibuildwheel]
 build-frontend = "build"
 
 [tool.pytest.ini_options]
 testpaths = ["tests"]
-addopts = "-v"
+addopts = "-ra"
+
+[tool.black]
+line-length = 88
+target-version = ["py310", "py311", "py312"]
 
 [tool.ruff]
 line-length = 88
-select = ["E", "F", "W", "I"]
+target-version = "py310"
+
+[tool.ruff.lint]
+select = ["E", "F", "W", "I", "UP", "B"]
 
 [tool.mypy]
-python_version = "3.11"
+python_version = "3.10"
 ignore_missing_imports = true
+warn_unused_ignores = true
+warn_redundant_casts = true
+check_untyped_defs = true

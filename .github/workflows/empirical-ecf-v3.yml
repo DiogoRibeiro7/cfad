@@ -1,0 +1,52 @@
+name: Empirical ECF v3
+
+on:
+  workflow_dispatch:
+  push:
+    branches:
+      - experiment/empirical-ecf-v3-runner
+    paths:
+      - "benchmarks/empirical_ecf_protocol_v3.json"
+      - "benchmarks/empirical_ecf_v3.py"
+      - "tests/test_empirical_ecf_v3.py"
+      - ".github/workflows/empirical-ecf-v3.yml"
+
+jobs:
+  benchmark:
+    runs-on: ubuntu-latest
+    timeout-minutes: 60
+
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"
+          cache: pip
+
+      - name: Install build dependencies
+        run: |
+          python -m pip install --upgrade pip
+          python -m pip install "setuptools>=68" wheel "numpy>=1.24" "Cython>=3.0"
+
+      - name: Install package and development dependencies
+        run: python -m pip install -e ".[dev]" --no-build-isolation
+
+      - name: Build Cython extensions
+        run: python setup.py build_ext --inplace
+
+      - name: Check v3 benchmark helpers
+        run: python -m pytest tests/test_empirical_ecf_v3.py -q
+
+      - name: Check substantive v3 benchmark lint
+        run: ruff check benchmarks/empirical_ecf_v3.py tests/test_empirical_ecf_v3.py --select F,I
+
+      - name: Run frozen v3 score benchmark
+        run: python benchmarks/empirical_ecf_v3.py
+
+      - name: Upload v3 evidence
+        uses: actions/upload-artifact@v4
+        with:
+          name: empirical-ecf-v3-evidence
+          path: benchmarks/results_v3/
+          if-no-files-found: error

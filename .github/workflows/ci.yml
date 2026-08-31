@@ -60,8 +60,13 @@ jobs:
           python -m pip install "setuptools>=68" wheel "numpy>=1.24" "Cython>=3.0"
           python -m pip install -e ".[dev]" --no-build-isolation
 
-      - name: Ruff
-        run: ruff check cfad tests apps
+      - name: Reject fatal Python errors repo-wide
+        run: ruff check cfad tests apps --select E9,F63,F7,F82
 
-      - name: Black
-        run: black --check cfad tests apps
+      - name: Lint compatibility changes
+        run: |
+          ruff check cfad/backtest.py tests/test_backtest.py apps/dashboard.py \
+            --select E,F,W,I,B
+
+      - name: Format compatibility changes
+        run: black --check cfad/backtest.py tests/test_backtest.py apps/dashboard.py

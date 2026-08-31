@@ -1,0 +1,58 @@
+{
+  "protocol_version": "1.0",
+  "status": "frozen-before-corrected-results",
+  "purpose": "Evaluate the corrected real-frequency ECF-shape detector without reusing the legacy empirical-residue benchmark contract.",
+  "series": {
+    "n_observations": 600,
+    "change_point": 360,
+    "post_change_horizon": 120,
+    "base_sigma": 0.01
+  },
+  "detector": {
+    "window": 60,
+    "step": 5,
+    "xi_max": 10.0,
+    "n_xi": 64,
+    "calibration_frac": 0.3,
+    "cusum_k": 0.5
+  },
+  "monte_carlo": {
+    "threshold_calibration_replicates": 100,
+    "evaluation_replicates": 200,
+    "threshold_seed_base": 101000,
+    "evaluation_seed_base": 202000,
+    "target_series_false_alarm_rate": 0.05,
+    "h_grid": [2.0, 2.5, 3.0, 3.5, 4.0, 4.5, 5.0, 5.5, 6.0, 6.5, 7.0, 8.0, 9.0, 10.0, 12.0]
+  },
+  "methods": [
+    "cfad_ecf_shape",
+    "rolling_mean",
+    "rolling_log_variance",
+    "rolling_excess_kurtosis"
+  ],
+  "scenarios": {
+    "null_gaussian": "Stationary N(0, sigma^2). Primary threshold-calibration law and evaluation null.",
+    "null_student_t": "Stationary Student-t(df=5), rescaled to sigma. Tests false alarms under a stable non-Gaussian shape.",
+    "shape_student_t": "Gaussian before the change; Student-t(df=4), rescaled to the same standard deviation, after the change.",
+    "shape_skew": "Gaussian before the change; standardized skew-normal(shape=8) after the change, preserving sample mean 0 and standard deviation sigma in the post-change segment.",
+    "mean_shift": "Gaussian throughout with post-change mean +1.5 sigma and unchanged variance. Specificity/control scenario.",
+    "variance_shift": "Gaussian throughout with post-change standard deviation 1.75 sigma and unchanged mean. Specificity/control scenario."
+  },
+  "evaluation": {
+    "null_metric": "Series-level probability of at least one alarm after score calibration.",
+    "pre_change_metric": "Series-level probability of at least one alarm after calibration but before the known change point.",
+    "power_metric": "Probability of at least one alarm from the change point through change_point + post_change_horizon.",
+    "delay_metric": "Observation delay of the first qualifying post-change alarm, conditional on detection.",
+    "intervals": "Wilson 95% confidence intervals for rates; median and interquartile range for conditional delay."
+  },
+  "publication_screen": {
+    "note": "Prospectively fixed screening criteria for a scientific-method performance claim; failure does not imply the software has no utility.",
+    "max_null_false_alarm_rate_each": 0.10,
+    "min_power_each_shape_alternative": 0.80,
+    "max_median_delay_shape_student_t": 60,
+    "max_median_delay_shape_skew": 90,
+    "min_average_power_advantage_over_best_moment_baseline": 0.10,
+    "kurtosis_noninferiority_power_margin": 0.05,
+    "kurtosis_noninferiority_delay_margin_observations": 15
+  }
+}

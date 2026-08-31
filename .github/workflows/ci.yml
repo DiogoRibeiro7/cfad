@@ -80,7 +80,7 @@ jobs:
 
       - name: Format compatibility changes
         run: |
-          black --diff --check \
+          black --check \
             cfad/backtest.py \
             cfad/bootstrap.py \
             cfad/contour.py \

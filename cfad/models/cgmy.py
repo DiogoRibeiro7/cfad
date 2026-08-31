@@ -62,6 +62,10 @@ class CGMYCF(CFModel):
 
         ``C * [(M-i*xi) log(M-i*xi) - M log(M)
              + (G+i*xi) log(G+i*xi) - G log(G)]``.
+
+        The characteristic-function normalization ``log(phi(0)) = 0`` is
+        imposed exactly after evaluation. This avoids cancellation error near
+        ``Y=1`` without perturbing the model at nonzero frequencies.
         """
         C, G, M, Y = self.C, self.G, self.M, self.Y
         xi_arr = np.asarray(xi, dtype=np.float64)
@@ -75,12 +79,14 @@ class CGMYCF(CFModel):
                 + left * np.log(left)
                 - G * np.log(G)
             )
-            return np.asarray(C * limit, dtype=np.complex128)
+            result = np.asarray(C * limit, dtype=np.complex128)
+        else:
+            gam = gamma_func(-Y)
+            term1 = (M - 1j * xi_arr) ** Y - M**Y
+            term2 = (G + 1j * xi_arr) ** Y - G**Y
+            result = np.asarray(C * gam * (term1 + term2), dtype=np.complex128)
 
-        gam = gamma_func(-Y)
-        term1 = (M - 1j * xi_arr) ** Y - M**Y
-        term2 = (G + 1j * xi_arr) ** Y - G**Y
-        return np.asarray(C * gam * (term1 + term2), dtype=np.complex128)
+        return np.where(xi_arr == 0.0, 0.0 + 0.0j, result).astype(np.complex128)
 
     def cf(self, xi: NDArray[np.float64]) -> NDArray[np.complex128]:
         return np.exp(self.log_cf(xi))

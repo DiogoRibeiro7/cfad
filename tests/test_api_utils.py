@@ -13,7 +13,6 @@ matplotlib.use("Agg")
 from cfad import compare_models, detect
 from cfad.detection import AnomalyReport
 from cfad.empirical_cf import ecf_covariance
-from cfad.models.base import CFModel
 from cfad.models.gaussian import GaussianCF
 from cfad.models.nig import NIGCF
 from cfad.residue_score import normalise_scores, rolling_pvalue, threshold_by_fpr

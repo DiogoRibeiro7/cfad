@@ -13,8 +13,8 @@ departure beyond the window mean and variance.
 
 from __future__ import annotations
 
-from collections.abc import Callable
 import warnings
+from collections.abc import Callable
 
 import numpy as np
 from numpy.typing import NDArray

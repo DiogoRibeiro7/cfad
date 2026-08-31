@@ -204,6 +204,42 @@ Any figures produced under the earlier empirical-contour-residue definition are
 provisional and must be regenerated before being used as evidence for the
 corrected method.
 
+# Current Validation Evidence
+
+The corrected method has been subjected to two frozen validation programmes.
+The v2 sequential experiment calibrated the maximum two-sided Page-CUSUM path by
+Monte Carlo under a Gaussian null. CFAD's Gaussian false-alarm rate was 0.064,
+but the same calibrated detector produced a 0.256 false-alarm rate under a
+stationary Student-t null. First-alarm power was 0.234 for a
+Gaussian-to-Student-t change and 0.208 for a Gaussian-to-skew change. The v2
+publication screen therefore failed.
+
+The v3 experiment removed the sequential layer and tested the score directly on
+non-overlapping windows. It separated the raw-frequency formulation from
+standardized-frequency scoring and compared a Gaussian reference with a frozen
+empirical in-control ECF. Standardization corrected the legacy raw score's
+near-perfect discrimination of a pure variance change: variance-shift AUC fell
+from 0.999 for the raw-frequency score to approximately 0.50 for both
+standardized CF scores. The empirical reference also produced strong null-law
+stability between stationary Gaussian and Student-t data, with a median-score
+ratio of 1.024 and KS statistic of 0.0505.
+
+Those improvements did not translate into superior shape discrimination. The
+primary empirical-reference CF score achieved AUC 0.646 for the heavy-tail
+change and 0.783 for the skew change, averaging 0.715. The prespecified minimum
+was 0.75 for each alternative. A simple excess-kurtosis distance averaged 0.738
+across the two shape alternatives, so the primary CF score was worse by 0.023
+rather than better by the required 0.05. It was also slightly worse than the
+standardized-Gaussian CF score on both shape alternatives. The v3 screen failed.
+
+These results delimit the current claim. The software implements a coherent ECF
+scoring and sequential-monitoring framework, and the validation work identifies
+useful properties of frequency standardization and empirical in-control
+referencing. However, the present evidence does not establish a statistically
+validated sequential detector or an accuracy advantage over simpler moment-based
+shape summaries. The frozen negative results are retained in the repository and
+are not tuned away after inspection.
+
 # Acknowledgements
 
 The project benefited from questions raised in teaching and research discussions

@@ -1,32 +1,43 @@
 {
   "title": "cfad: Characteristic Function Anomaly Detector for Financial Time Series",
-  "description": "Research-oriented Python software for detecting distributional-shape changes in financial returns. CFAD compares rolling empirical characteristic functions with Gaussian characteristic functions fitted to the same window mean and variance, then monitors the resulting real-frequency discrepancy score with two-sided Page-CUSUM. The repository also provides parametric CF models, goodness-of-fit tools, backtesting, bootstrap diagnostics, notebooks, and optional Cython acceleration.",
+  "description": "cfad is research-oriented Python software for empirical characteristic-function analysis of distributional change in financial time series. The package provides rolling ECF estimation, real-frequency distributional discrepancy scores, two-sided Page-CUSUM monitoring, parametric characteristic-function models, goodness-of-fit tools, walk-forward backtesting, bootstrap and sensitivity diagnostics, reproducible Monte Carlo validation workflows, and optional Cython acceleration. The project is designed for methodological research, benchmarking, and reproducible experimentation rather than unqualified production anomaly-detection claims.",
   "creators": [
     {
       "name": "Ribeiro, Diogo",
-      "affiliation": "Faculty of Media Arts and Design, Technical University of Porto",
+      "affiliation": "Faculty of Media Arts and Design, Technical University of Porto, Vila do Conde, Portugal",
       "orcid": "0009-0001-2022-7072"
     }
   ],
   "keywords": [
-    "anomaly detection",
     "empirical characteristic function",
-    "financial time series",
+    "distributional change detection",
     "change-point detection",
-    "CUSUM",
-    "distributional shape",
-    "Python",
-    "Cython",
-    "econometrics"
+    "anomaly detection",
+    "statistical process monitoring",
+    "Page CUSUM",
+    "financial time series",
+    "financial econometrics",
+    "goodness of fit",
+    "Monte Carlo simulation",
+    "reproducible research",
+    "research software",
+    "Python"
   ],
-  "license": "MIT",
   "upload_type": "software",
   "access_right": "open",
+  "license": "mit",
+  "language": "eng",
+  "method": "Rolling empirical characteristic functions are evaluated on real-frequency grids and summarized with normalized distributional discrepancy scores. Sequential monitoring uses standardized score sequences with a two-sided Page-CUSUM. Reproducible simulation benchmarks evaluate false-alarm behaviour, finite-window shape discrimination, null-law transportability, location/scale specificity, and comparisons with targeted and omnibus distributional summaries.",
+  "notes": "Validation status: the repository preserves frozen negative confirmatory evidence as well as successful software tests. Current validation does not establish a statistically validated sequential detector or superiority over simpler moment-based shape summaries; these negative results are retained rather than tuned away after inspection.",
   "related_identifiers": [
     {
       "identifier": "https://github.com/DiogoRibeiro7/cfad",
-      "relation": "isSupplementTo",
-      "scheme": "url"
+      "relation": "isDerivedFrom"
     }
+  ],
+  "references": [
+    "Epps, T. W. and Pulley, L. B. (1983). A test for normality based on the empirical characteristic function. Biometrika 70(3), 723-726.",
+    "Page, E. S. (1954). Continuous inspection schemes. Biometrika 41(1-2), 100-115.",
+    "Cont, R. and Tankov, P. (2004). Financial Modelling with Jump Processes. Chapman & Hall/CRC."
   ]
 }

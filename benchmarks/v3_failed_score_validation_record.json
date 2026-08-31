@@ -1,0 +1,79 @@
+{
+  "status": "failed-score-validation-screen",
+  "purpose": "Immutable summary of the first valid v3 empirical-ECF score experiment. The result is preserved before any further method redesign or tuning.",
+  "workflow_run_id": 33422865729,
+  "workflow_head_sha": "8d83e448caa40f6e44b7ac2055f764af784f2986",
+  "artifact": {
+    "id": 9769644348,
+    "name": "empirical-ecf-v3-evidence",
+    "digest": "sha256:855c563b347fa0a159638ff0b15620a73d45135b3134711b5a614066e4f85bb1"
+  },
+  "reproducibility": {
+    "protocol_sha256": "7412ade35889b8956dfa94d60bdfd78a1fcfa27e8d03f9e8409e6a02468099ac",
+    "runner_sha256": "be000dfc81d7fdaa42780e2500bee323161d957b847b0cfce8374f2c938fba71",
+    "replicates_per_scenario": 1000,
+    "seed_blocks": {
+      "null_gaussian": [2001000, 2001999],
+      "null_student_t": [2101000, 2101999],
+      "shape_student_t": [2201000, 2201999],
+      "shape_skew": [2301000, 2301999],
+      "mean_shift": [2401000, 2401999],
+      "variance_shift": [2501000, 2501999]
+    },
+    "score_rows": 150000
+  },
+  "auc": {
+    "legacy_raw_gaussian": {
+      "shape_student_t": 0.5888899375,
+      "shape_skew": 0.8386300625,
+      "mean_shift": 0.51025025,
+      "variance_shift": 0.9988321875
+    },
+    "standardized_gaussian": {
+      "shape_student_t": 0.66994525,
+      "shape_skew": 0.82231025,
+      "mean_shift": 0.4996449375,
+      "variance_shift": 0.502089
+    },
+    "standardized_empirical_reference": {
+      "shape_student_t": 0.64626125,
+      "shape_skew": 0.78307075,
+      "mean_shift": 0.4978451875,
+      "variance_shift": 0.50319225
+    },
+    "rolling_excess_kurtosis_distance": {
+      "shape_student_t": 0.835388625,
+      "shape_skew": 0.6401788125,
+      "mean_shift": 0.5120589375,
+      "variance_shift": 0.50916525
+    },
+    "rolling_skewness_distance": {
+      "shape_student_t": 0.7291358125,
+      "shape_skew": 0.930021125,
+      "mean_shift": 0.497534,
+      "variance_shift": 0.493411875
+    }
+  },
+  "primary_null_robustness": {
+    "gaussian_median": 0.12448904532534022,
+    "student_t_median": 0.12749518748456296,
+    "student_t_to_gaussian_median_ratio": 1.0241478449076902,
+    "ks_statistic": 0.05049999999999999
+  },
+  "publication_screen": {
+    "passes_all": false,
+    "primary_average_shape_auc": 0.714666,
+    "kurtosis_average_shape_auc": 0.73778371875,
+    "average_auc_advantage_over_kurtosis": -0.023117718750000016,
+    "checks": {
+      "shape_auc": false,
+      "kurtosis_advantage": false,
+      "null_median_ratio": true,
+      "null_ks": true,
+      "mean_specificity": true,
+      "variance_specificity": true,
+      "not_worse_than_standardized_gaussian": false
+    }
+  },
+  "interpretation": "Standardizing the frequency coordinate corrected the legacy score's sensitivity to pure variance changes, and a frozen empirical in-control ECF produced excellent Gaussian-versus-Student-t null-law stability. However, the primary empirical-reference CF score failed the prespecified shape-discrimination criteria, underperformed the standardized-Gaussian CF score on both shape alternatives, and did not outperform the simple kurtosis comparator on average. No new sequential detector should be designed from v3 under the frozen decision rule."
+}

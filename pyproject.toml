@@ -7,7 +7,7 @@ name = "cfad"
 version = "0.1.0"
 description = "ECF-based distributional-shape anomaly detection for financial time series"
 readme = "README.md"
-license = { file = "LICENSE" }
+license = "MIT"
 authors = [
   { name = "Diogo Ribeiro" }
 ]
@@ -22,7 +22,6 @@ classifiers = [
   "Development Status :: 3 - Alpha",
   "Intended Audience :: Science/Research",
   "Topic :: Scientific/Engineering :: Mathematics",
-  "License :: OSI Approved :: MIT License",
   "Programming Language :: Python :: 3",
   "Programming Language :: Python :: 3.10",
   "Programming Language :: Python :: 3.11",
@@ -62,6 +61,12 @@ Changelog = "https://github.com/DiogoRibeiro7/cfad/blob/develop/CHANGELOG.md"
 
 [project.scripts]
 cfad = "cfad.cli:main"
+
+[tool.setuptools.packages.find]
+include = ["cfad*"]
+
+[tool.setuptools.package-data]
+cfad = ["py.typed"]
 
 [tool.cibuildwheel]
 build-frontend = "build"

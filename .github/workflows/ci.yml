@@ -2,14 +2,15 @@ name: CI
 
 on:
   push:
-    branches: [main, dev]
+    branches: [develop]
   pull_request:
-    branches: [main]
+    branches: [develop]
 
 jobs:
   test:
     runs-on: ${{ matrix.os }}
     strategy:
+      fail-fast: false
       matrix:
         os: [ubuntu-latest, macos-latest]
         python-version: ["3.10", "3.11", "3.12"]
@@ -21,23 +22,25 @@ jobs:
         uses: actions/setup-python@v5
         with:
           python-version: ${{ matrix.python-version }}
+          cache: pip
 
-      - name: Install dependencies
+      - name: Install package and development dependencies
         run: |
-          pip install --upgrade pip
-          pip install numpy scipy pandas Cython
-          pip install -e ".[dev]" --no-build-isolation
+          python -m pip install --upgrade pip
+          python -m pip install -e ".[dev]" --no-build-isolation
 
       - name: Build Cython extensions
         run: python setup.py build_ext --inplace
 
       - name: Run tests
-        run: pytest tests/ -v --cov=cfad --cov-report=xml --cov-fail-under=75
+        run: python -m pytest tests/ --cov=cfad --cov-report=xml --cov-fail-under=80
 
       - name: Upload coverage
+        if: matrix.os == 'ubuntu-latest' && matrix.python-version == '3.12'
         uses: codecov/codecov-action@v4
         with:
           files: coverage.xml
+          fail_ci_if_error: false
 
   lint:
     runs-on: ubuntu-latest
@@ -45,7 +48,13 @@ jobs:
       - uses: actions/checkout@v4
       - uses: actions/setup-python@v5
         with:
-          python-version: "3.11"
-      - run: pip install ruff black mypy
-      - run: ruff check cfad/
-      - run: black --check cfad/
+          python-version: "3.12"
+          cache: pip
+      - name: Install lint and type-check dependencies
+        run: python -m pip install -e ".[dev]" --no-build-isolation
+      - name: Ruff
+        run: ruff check cfad tests
+      - name: Black
+        run: black --check cfad tests
+      - name: Mypy
+        run: mypy cfad

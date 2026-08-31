@@ -9,7 +9,7 @@ import math
 import os
 import time
 from pathlib import Path
-from typing import Any, Callable
+from typing import Any
 
 import numpy as np
 from scipy.stats import kurtosis, rankdata, skew, skewnorm

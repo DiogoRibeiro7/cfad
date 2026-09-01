@@ -6,6 +6,26 @@ Versioning follows [Semantic Versioning](https://semver.org/).
 
 ## [Unreleased]
 
+## [0.2.2] — 2026-09-01
+
+### Fixed
+- Fixed the cross-platform wheel smoke-test command so `python -c` no longer
+  receives leading whitespace and raises `IndentationError` after a successful
+  wheel build.
+- Added pull-request validation for the wheel/sdist workflow on packaging and
+  package changes, so release binaries are exercised on Linux, macOS, and
+  Windows before a release tag is created.
+
+### Release history
+- The public `v0.2.1` tag is retained unchanged. Its sdist built successfully,
+  and Linux, macOS, and Windows each successfully compiled, repaired, and
+  installed the `0.2.1` wheel before the shared smoke-test command failed on its
+  leading space.
+- No GitHub Release was published from `v0.2.1`, and PyPI remains manual-only.
+- Version 0.2.2 changes release engineering only. The statistical method,
+  benchmarks, frozen validation evidence, and scientific interpretation are
+  unchanged.
+
 ## [0.2.1] — 2026-08-31
 
 ### Fixed

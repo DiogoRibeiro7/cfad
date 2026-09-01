@@ -5,7 +5,7 @@ build-backend = "setuptools.build_meta"
 [project]
 name = "cfad"
 version = "0.2.2"
-description = "ECF-based distributional-shape anomaly detection for financial time series"
+description = "Research software for ECF-based distributional change analysis in financial returns"
 readme = "README.md"
 license = "MIT"
 authors = [

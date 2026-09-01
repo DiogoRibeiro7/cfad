@@ -3,9 +3,17 @@
 [![License: MIT](https://img.shields.io/badge/License-MIT-yellow.svg)](LICENSE)
 [![CI](https://github.com/DiogoRibeiro7/cfad/actions/workflows/ci.yml/badge.svg?branch=main)](https://github.com/DiogoRibeiro7/cfad/actions/workflows/ci.yml)
 
-**cfad** is a research-oriented Python package for detecting changes in the
-**distributional shape** of financial returns with empirical characteristic
-functions (ECFs) and sequential CUSUM monitoring.
+**cfad** is research software for studying distributional change in financial
+return series with empirical characteristic functions (ECFs). It turns rolling
+ECF discrepancies into shape-sensitive anomaly scores, supports sequential
+Page-CUSUM monitoring, and includes model-comparison, goodness-of-fit,
+backtesting, bootstrap, sensitivity, notebook, dashboard, and benchmark
+workflows for reproducible experimentation.
+
+The project is aimed at methodological research and validation rather than
+turnkey production trading signals. Its benchmarks explicitly preserve negative
+results and document where the current ECF score does, and does not, outperform
+simpler distributional summaries.
 
 For each rolling window, CFAD compares the empirical characteristic function
 with the Gaussian characteristic function fitted to that window's sample mean

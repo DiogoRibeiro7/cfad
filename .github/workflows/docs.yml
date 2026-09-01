@@ -43,6 +43,7 @@ jobs:
       - name: Install documentation dependencies
         run: |
           python -m pip install --upgrade pip
+          python -m pip install "setuptools>=68" wheel "numpy>=1.24" "Cython>=3.0" "packaging>=24.2"
           python -m pip install -e ".[docs]" --no-build-isolation
 
       - name: Build documentation

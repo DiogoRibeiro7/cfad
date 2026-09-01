@@ -7,8 +7,8 @@ import json
 import os
 import platform
 import time
+from collections.abc import Callable
 from pathlib import Path
-from typing import Callable
 
 import numpy as np
 from scipy.stats import kurtosis, skew

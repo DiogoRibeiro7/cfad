@@ -3,6 +3,13 @@ name: Build wheels
 on:
   push:
     tags: ["v*"]
+  pull_request:
+    branches: [main]
+    paths:
+      - "pyproject.toml"
+      - "setup.py"
+      - "cfad/**"
+      - ".github/workflows/build_wheels.yml"
   workflow_dispatch:
 
 jobs:
@@ -24,13 +31,7 @@ jobs:
           CIBW_SKIP: "*-musllinux* *-win32 *-manylinux_i686"
           CIBW_BEFORE_BUILD: >-
             python -m pip install "Cython>=3.0" "numpy>=1.24" "packaging>=24.2"
-          CIBW_TEST_COMMAND: >
-            python -c "
-            from cfad import detect;
-            import numpy as np;
-            r = detect(np.random.normal(0,.01,200), window=50);
-            print('wheel OK:', len(r.scores), 'windows')
-            "
+          CIBW_TEST_COMMAND: "python -c \"from cfad import detect; import numpy as np; r = detect(np.random.normal(0,.01,200), window=50); print('wheel OK:', len(r.scores), 'windows')\""
 
       - uses: actions/upload-artifact@v4
         with:

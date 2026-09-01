@@ -2,6 +2,7 @@
 
 [![License: MIT](https://img.shields.io/badge/License-MIT-yellow.svg)](LICENSE)
 [![CI](https://github.com/DiogoRibeiro7/cfad/actions/workflows/ci.yml/badge.svg?branch=main)](https://github.com/DiogoRibeiro7/cfad/actions/workflows/ci.yml)
+[![PyPI version](https://img.shields.io/pypi/v/cfad.svg)](https://pypi.org/project/cfad/)
 
 **cfad** is research software for studying distributional change in financial
 return series with empirical characteristic functions (ECFs). It turns rolling
@@ -49,11 +50,10 @@ Page-CUSUM then converts the score sequence into sequential alarms.
 
 ## Status
 
-The repository is currently a **research/development project**. The codebase
-contains release scaffolding, documentation, benchmarks, notebooks, and a draft
-software paper. GitHub releases are archival research-software snapshots; no
-PyPI distribution is claimed unless a separate PyPI publication is explicitly
-performed and verified.
+The repository is currently a **research/development project**. Version `0.2.2`
+is the first verified public release available both as a GitHub Release and on
+PyPI. PyPI publication uses GitHub Actions OpenID Connect (OIDC) trusted
+publishing rather than a long-lived API token.
 
 ### Current validation boundary
 
@@ -78,7 +78,13 @@ The negative v2 and v3 results are retained as reproducible evidence in
 
 ## Installation
 
-From the default branch:
+From PyPI:
+
+```bash
+python -m pip install cfad
+```
+
+For development from the default branch:
 
 ```bash
 git clone https://github.com/DiogoRibeiro7/cfad

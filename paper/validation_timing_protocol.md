@@ -32,9 +32,11 @@ independent call to each statistic.
 ## Inputs
 
 Use deterministic Gaussian draws with reference size 300 and sample sizes
-`30`, `60`, and `120`. For each window size, generate 200 fixed input pairs from
-a dedicated seed namespace starting at `5_001_000`. The same fixed input pairs
-are used for every method at that window size.
+`30`, `60`, and `120`. For each window size, generate 200 fixed input pairs. Pair
+`i` for window `w` uses a fresh `numpy.random.default_rng` seeded as
+`5_001_000 + w * 10_000 + i`, with `i = 0, ..., 199`; the reference draw is
+`rng.normal(size=300)` and the sample draw is `rng.normal(size=w)`. The same
+fixed input pairs are used for every method at that window size.
 
 These timing inputs are not inferential Monte Carlo replicates and do not alter
 the frozen comparative study.
@@ -60,9 +62,13 @@ claimed to be machine-independent constants.
 
 ## Integrity checks
 
-The timing runner must import the existing method implementations from
-`benchmarks/validation_study_benchmark.py`; it must not duplicate or modify their
-mathematics.
+The timing runner reuses the frozen comparative runner's exported preprocessing
+and omnibus method implementations. Because the frozen `score_all()` computes all
+seven methods jointly, standalone wrappers are required for the moment methods
+and for composing method-specific preprocessing. Those wrappers must preserve the
+same formulas, and focused regression tests must compare every standalone timing
+method numerically against the corresponding `score_all()` output on deterministic
+inputs.
 
 The frozen statistical files are inputs only. The timing study must not write to
 or regenerate `validation_scores.csv`, `validation_auc.csv`,

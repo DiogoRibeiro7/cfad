@@ -15,8 +15,10 @@ nav:
   - Home: index.md
   - Installation: installation.md
   - Quickstart: quickstart.md
-  - API Reference: api.md
+  - Detector Guide: guide.md
+  - Validation: validation.md
   - Mathematics: mathematics.md
+  - API Reference: api.md
   - Contributing: contributing.md
 
 plugins:

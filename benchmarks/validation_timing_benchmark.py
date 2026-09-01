@@ -6,7 +6,6 @@ import csv
 import json
 import os
 import platform
-import statistics
 import time
 from pathlib import Path
 from typing import Callable

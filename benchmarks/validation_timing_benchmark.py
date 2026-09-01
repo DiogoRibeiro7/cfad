@@ -11,6 +11,7 @@ from collections.abc import Callable
 from pathlib import Path
 
 import numpy as np
+import scipy
 from scipy.stats import kurtosis, skew
 
 from benchmarks.validation_study_benchmark import (
@@ -106,14 +107,12 @@ def summarize_ns(values: list[int]) -> dict[str, float]:
 def run_timing() -> tuple[list[dict[str, object]], dict[str, object]]:
     if "frozen before timing results" not in PROTOCOL_PATH.read_text(encoding="utf-8"):
         raise RuntimeError("timing protocol is not frozen")
-
     rows: list[dict[str, object]] = []
     for window in WINDOWS:
         pairs = deterministic_inputs(window)
         for name, method in METHODS.items():
             for _ in range(N_WARMUP):
                 method(*pairs[0])
-
             elapsed_ns: list[int] = []
             for reference, sample in pairs:
                 started = time.perf_counter_ns()
@@ -121,9 +120,7 @@ def run_timing() -> tuple[list[dict[str, object]], dict[str, object]]:
                 elapsed_ns.append(time.perf_counter_ns() - started)
                 if not np.isfinite(value):
                     raise RuntimeError(f"non-finite timing-call result for {name}")
-
             rows.append({"method": name, "window": window, **summarize_ns(elapsed_ns)})
-
     provenance: dict[str, object] = {
         "protocol": str(PROTOCOL_PATH),
         "windows": list(WINDOWS),
@@ -132,6 +129,7 @@ def run_timing() -> tuple[list[dict[str, object]], dict[str, object]]:
         "seed_base": SEED_BASE,
         "python": platform.python_version(),
         "numpy": np.__version__,
+        "scipy": scipy.__version__,
         "platform": platform.platform(),
         "processor": platform.processor(),
         "runner_os": os.environ.get("RUNNER_OS"),
@@ -150,7 +148,8 @@ def main() -> None:
         writer.writeheader()
         writer.writerows(rows)
     (RESULTS_DIR / "timing_provenance.json").write_text(
-        json.dumps(provenance, indent=2, sort_keys=True) + "\n", encoding="utf-8"
+        json.dumps(provenance, indent=2, sort_keys=True) + "\n",
+        encoding="utf-8",
     )
 
 

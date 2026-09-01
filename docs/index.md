@@ -1,5 +1,4 @@
-cfad — Characteristic Function Anomaly Detector
-================================================
+# cfad - Characteristic Function Anomaly Detector
 
 `cfad` is research software for studying distributional change in financial
 return series with rolling empirical characteristic functions. It provides
@@ -11,12 +10,10 @@ The current validation record should be read as methodological evidence rather
 than a production anomaly-detection claim: the repository preserves negative
 benchmark results alongside the implementation and documentation.
 
-.. toctree::
-   :maxdepth: 2
-   :caption: Contents
+## Documentation
 
-   installation
-   quickstart
-   api
-   mathematics
-   contributing
+- [Installation](installation.md)
+- [Quickstart](quickstart.md)
+- [API Reference](api.md)
+- [Mathematics](mathematics.md)
+- [Contributing](contributing.md)

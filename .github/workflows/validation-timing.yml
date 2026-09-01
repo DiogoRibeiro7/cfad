@@ -20,10 +20,19 @@ jobs:
         with:
           python-version: "3.12"
 
-      - name: Install build prerequisites
+      - name: Install build prerequisites from pyproject
         run: |
           python -m pip install --upgrade pip
-          python -m pip install "setuptools>=68" wheel "Cython>=3.0" "numpy>=1.24" "packaging>=24.2"
+          python - <<'PY'
+          import subprocess
+          import sys
+          import tomllib
+          from pathlib import Path
+
+          data = tomllib.loads(Path("pyproject.toml").read_text(encoding="utf-8"))
+          requirements = data["build-system"]["requires"]
+          subprocess.check_call([sys.executable, "-m", "pip", "install", *requirements])
+          PY
 
       - name: Install package and development dependencies
         run: python -m pip install -e ".[dev]" --no-build-isolation

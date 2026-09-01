@@ -35,7 +35,12 @@ def test_each_method_matches_frozen_score_all() -> None:
     reference, sample = timing.deterministic_inputs(60)[0]
     expected = score_all(reference, sample)
     for name, method in timing.METHODS.items():
-        assert np.isclose(method(reference, sample), expected[name], rtol=1e-12, atol=1e-12)
+        assert np.isclose(
+            method(reference, sample),
+            expected[name],
+            rtol=1e-12,
+            atol=1e-12,
+        )
 
 
 def test_each_method_returns_finite_value() -> None:

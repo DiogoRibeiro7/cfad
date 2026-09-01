@@ -6,7 +6,7 @@ authors:
     orcid: https://orcid.org/0009-0001-2022-7072
     affiliation: "Faculty of Media Arts and Design, Technical University of Porto, Vila do Conde, Portugal"
 title: "cfad: Characteristic Function Anomaly Detector"
-version: 0.2.0
+version: 0.2.1
 date-released: 2026-08-31
 repository-code: https://github.com/DiogoRibeiro7/cfad
 license: MIT

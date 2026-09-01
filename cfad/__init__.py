@@ -28,7 +28,7 @@ from cfad.sensitivity import (
 )
 from cfad.utils import load_spy_sample, plot_scores, simulate_levy_returns
 
-__version__ = "0.2.0"
+__version__ = "0.2.1"
 __author__ = "Diogo Ribeiro"
 
 __all__ = [

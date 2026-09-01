@@ -6,6 +6,32 @@ Versioning follows [Semantic Versioning](https://semver.org/).
 
 ## [Unreleased]
 
+## [0.2.1] — 2026-08-31
+
+### Fixed
+- Repaired the GitHub release build after the public `v0.2.0` tag failed during
+  macOS wheel construction because an old cibuildwheel build environment paired
+  modern setuptools with an incompatible `packaging` version.
+- Added `packaging>=24.2` to the isolated build requirements and upgraded the
+  release wheel builder from cibuildwheel 2.19.2 to 4.2.0.
+- Disabled matrix fail-fast for release wheels so one platform cannot hide build
+  results from the remaining operating systems.
+- Aligned CI, README installation guidance, badges, and project URLs with the
+  repository's current default branch, `main`.
+- Changed PyPI publishing from an automatic post-build workflow to an explicit
+  manual workflow requiring a successful wheel-build run ID. GitHub release
+  creation no longer implies PyPI publication.
+
+### Release history
+- The `v0.2.0` annotated tag remains immutable as the first release attempt.
+  Its sdist built successfully, but the wheel workflow failed on macOS and no
+  GitHub Release was published from that tag.
+- The PyPI follow-on workflow for `v0.2.0` was skipped; no package was published
+  to PyPI.
+- Version 0.2.1 contains release-engineering fixes only. The statistical method,
+  frozen validation results, benchmarks, and scientific interpretation are
+  unchanged from 0.2.0.
+
 ## [0.2.0] — 2026-08-31
 
 ### Changed
@@ -22,7 +48,6 @@ Versioning follows [Semantic Versioning](https://semver.org/).
 - Replaced contour-height sensitivity with real-frequency cutoff sensitivity.
 - Updated README, software paper, citation metadata, Zenodo metadata, and
   affiliation to match the corrected method and current project status.
-- Reattached CI to the repository's actual development branch, `develop`.
 
 ### Added
 - Frozen v2 sequential-calibration validation with explicit false-alarm,

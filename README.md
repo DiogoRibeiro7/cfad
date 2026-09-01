@@ -182,7 +182,7 @@ parameter or method changes.
 
 ## Documentation and paper
 
-- Sphinx sources: [`docs/source/`](docs/source/)
+- MkDocs sources: [`docs/`](docs/)
 - Draft software paper: [`paper/paper.md`](paper/paper.md)
 - Reproducible notebooks: [`notebooks/`](notebooks/)
 - Benchmarks: [`benchmarks/`](benchmarks/)

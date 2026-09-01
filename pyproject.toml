@@ -60,7 +60,7 @@ docs = [
 [project.urls]
 Homepage = "https://github.com/DiogoRibeiro7/cfad"
 Repository = "https://github.com/DiogoRibeiro7/cfad"
-Documentation = "https://cfad.readthedocs.io"
+Documentation = "https://diogoribeiro7.github.io/cfad/"
 Changelog = "https://github.com/DiogoRibeiro7/cfad/blob/main/CHANGELOG.md"
 "Bug Tracker" = "https://github.com/DiogoRibeiro7/cfad/issues"
 

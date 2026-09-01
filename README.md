@@ -188,6 +188,7 @@ parameter or method changes.
 
 ## Documentation and paper
 
+- Published documentation: <https://diogoribeiro7.github.io/cfad/>
 - MkDocs sources: [`docs/`](docs/)
 - Draft software paper: [`paper/paper.md`](paper/paper.md)
 - Reproducible notebooks: [`notebooks/`](notebooks/)

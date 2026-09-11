@@ -6,6 +6,14 @@ Versioning follows [Semantic Versioning](https://semver.org/).
 
 ## [Unreleased]
 
+## [0.2.3] — 2026-09-11
+
+### Changed
+- The README's Status section describes the verified PyPI releases instead of
+  disclaiming a PyPI distribution; the PyPI project page renders that text from
+  this release on. Project metadata points the documentation link at
+  <https://diogoribeiro7.github.io/cfad/>, the site that is actually published.
+
 ## [0.2.2] — 2026-09-01
 
 ### Fixed
